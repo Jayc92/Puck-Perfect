@@ -4,6 +4,7 @@ import type { DraftPrompt } from "../types";
 type DraftSpinnerProps = {
   status: "intro" | "ready" | "spinning" | "choosingPlayer" | "assigningSlot" | "complete" | "results";
   prompt: DraftPrompt | null;
+  pendingPrompt: DraftPrompt | null;
   onSpin: () => void;
   canSpin: boolean;
   spinFranchiseNames: string[];
@@ -13,6 +14,7 @@ type DraftSpinnerProps = {
 export function DraftSpinner({
   status,
   prompt,
+  pendingPrompt,
   onSpin,
   canSpin,
   spinFranchiseNames,
@@ -45,9 +47,18 @@ export function DraftSpinner({
 
   const spinningTeamLabel = fallbackFranchises[spinFrame % fallbackFranchises.length];
   const spinningEraLabel = fallbackEras[(spinFrame * 2) % fallbackEras.length];
+  const revealSettledPrompt = isSpinning && Boolean(pendingPrompt) && spinFrame >= 8;
 
-  const teamLabel = isSpinning ? spinningTeamLabel : prompt?.franchiseName ?? "Team";
-  const eraLabel = isSpinning ? spinningEraLabel : prompt?.decadeTag ?? "Era";
+  const teamLabel = isSpinning
+    ? revealSettledPrompt
+      ? pendingPrompt?.franchiseName ?? spinningTeamLabel
+      : spinningTeamLabel
+    : prompt?.franchiseName ?? "Team";
+  const eraLabel = isSpinning
+    ? revealSettledPrompt
+      ? pendingPrompt?.decadeTag ?? spinningEraLabel
+      : spinningEraLabel
+    : prompt?.decadeTag ?? "Era";
   const canStartSpin = canSpin && status === "ready" && !prompt;
 
   return (

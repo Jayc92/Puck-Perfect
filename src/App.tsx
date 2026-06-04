@@ -73,6 +73,7 @@ function App() {
   const [coachId, setCoachId] = useState<string | null>(null);
   const [draftedPlayerIds, setDraftedPlayerIds] = useState<string[]>([]);
   const [currentPrompt, setCurrentPrompt] = useState<DraftPrompt | null>(null);
+  const [pendingPrompt, setPendingPrompt] = useState<DraftPrompt | null>(null);
   const [lastPromptKey, setLastPromptKey] = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [seasonGames, setSeasonGames] = useState(SEASON_GAMES);
@@ -156,6 +157,7 @@ function App() {
     setCoachId(savedGame.coachId);
     setDraftedPlayerIds(savedGame.draftedPlayerIds);
     setCurrentPrompt(savedGame.currentPrompt);
+    setPendingPrompt(null);
     setLastPromptKey(savedGame.lastPromptKey);
     setSelectedPlayerId(savedGame.selectedPlayerId);
     setSeasonGames(savedGame.seasonGames);
@@ -215,33 +217,39 @@ function App() {
 
   useEffect(() => {
     if (status !== "spinning" || !dataset) {
+      if (pendingPrompt) {
+        setPendingPrompt(null);
+      }
       return;
     }
 
+    const promptResult = buildDraftPrompt(
+      dataset.players,
+      dataset.coaches,
+      dataset.franchises,
+      lineup,
+      coachId,
+      draftedPlayerIds,
+      gameMode,
+      gameMode === "cap"
+        ? Math.max(
+            SALARY_CAP -
+              draftedPlayerIds.reduce((total, playerId) => {
+                const player = getPlayerById(dataset.players, playerId);
+                return total + (player ? getPlayerCapCost(player) : 0);
+              }, 0),
+            0,
+          )
+        : SALARY_CAP,
+      rngState,
+      lastPromptKey,
+    );
+    setPendingPrompt(promptResult.prompt);
+
     const timeout = window.setTimeout(() => {
-      const promptResult = buildDraftPrompt(
-        dataset.players,
-        dataset.coaches,
-        dataset.franchises,
-        lineup,
-        coachId,
-        draftedPlayerIds,
-        gameMode,
-        gameMode === "cap"
-          ? Math.max(
-              SALARY_CAP -
-                draftedPlayerIds.reduce((total, playerId) => {
-                  const player = getPlayerById(dataset.players, playerId);
-                  return total + (player ? getPlayerCapCost(player) : 0);
-                }, 0),
-              0,
-            )
-          : SALARY_CAP,
-        rngState,
-        lastPromptKey,
-      );
       setRngState(promptResult.rngState);
       setCurrentPrompt(promptResult.prompt);
+      setPendingPrompt(null);
       setLastPromptKey(getPromptKey(promptResult.prompt));
       setStatus(promptResult.prompt ? "choosingPlayer" : "ready");
     }, 1300);
@@ -254,6 +262,7 @@ function App() {
     gameMode,
     lastPromptKey,
     lineup,
+    pendingPrompt,
     rngState,
     status,
   ]);
@@ -465,6 +474,7 @@ function App() {
     }
 
     setCurrentPrompt(null);
+    setPendingPrompt(null);
     setSelectedPlayerId(null);
     setPlayerSearch("");
     setPlayerFilter("ALL");
@@ -512,6 +522,7 @@ function App() {
       setCoachId(selectedPlayerId);
       setSelectedPlayerId(null);
       setCurrentPrompt(null);
+      setPendingPrompt(null);
       setResult(null);
       setStatus(isRosterComplete(lineup, selectedPlayerId) ? "complete" : "ready");
       return;
@@ -538,6 +549,7 @@ function App() {
     setDraftedPlayerIds(nextDrafted);
     setSelectedPlayerId(null);
     setCurrentPrompt(null);
+    setPendingPrompt(null);
     setResult(null);
     setStatus(isRosterComplete(nextLineup, coachId) ? "complete" : "ready");
   };
@@ -549,6 +561,7 @@ function App() {
     setCoachId(null);
     setDraftedPlayerIds([]);
     setCurrentPrompt(null);
+    setPendingPrompt(null);
     setLastPromptKey(null);
     setSelectedPlayerId(null);
     setSeasonGames(SEASON_GAMES);
@@ -676,6 +689,7 @@ function App() {
               <DraftSpinner
                 status={status}
                 prompt={currentPrompt}
+                pendingPrompt={pendingPrompt}
                 onSpin={beginSpin}
                 canSpin={!hasCompleteRoster && !currentPrompt && status === "ready"}
                 spinFranchiseNames={[
