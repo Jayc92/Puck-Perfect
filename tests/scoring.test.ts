@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sampleCoaches } from "../src/data/sampleCoaches";
 import { calculatePlayerRating, calculateTeamRating } from "../src/lib/scoring";
 import { samplePlayers } from "../src/data/samplePlayers";
 
@@ -41,8 +42,18 @@ describe("scoring", () => {
       G: "grant-fuhr",
     } as const;
 
-    const balanced = calculateTeamRating(balancedLineup, samplePlayers);
-    const awkward = calculateTeamRating(awkwardLineup, samplePlayers);
+    const balanced = calculateTeamRating(
+      balancedLineup,
+      samplePlayers,
+      "scotty-bowman",
+      sampleCoaches,
+    );
+    const awkward = calculateTeamRating(
+      awkwardLineup,
+      samplePlayers,
+      "darryl-sutter",
+      sampleCoaches,
+    );
 
     expect(balanced.teamRating).toBeGreaterThan(awkward.teamRating);
     expect(balanced.fitScore).toBeGreaterThan(awkward.fitScore);

@@ -59,14 +59,18 @@ export function DraftSpinner({
             {isSpinning
               ? "Scanning eras..."
               : prompt
-                ? "Draft an eligible player"
+                ? prompt.kind === "coach"
+                  ? "Hire an eligible coach"
+                  : "Draft an eligible player"
                 : "Ready for the opening spin"}
           </h2>
           <p className="mt-2 text-sm text-slate-200">
             {isSpinning
               ? "The board is rerolling until it finds a franchise-era pool with enough eligible talent."
               : prompt
-                ? "Pick the strongest fit from the revealed franchise and era, then confirm the choice to lock it into your lineup."
+                ? prompt.kind === "coach"
+                  ? "Your lineup is set. Pick a bench boss from the revealed franchise and era, then confirm to lock in the coaching boost."
+                  : "Pick the strongest fit from the revealed franchise and era, then confirm the choice to lock it into your lineup."
                 : "Spin to reveal a franchise and decade, then draft a legend from that historical pool."}
           </p>
         </div>
@@ -82,7 +86,9 @@ export function DraftSpinner({
           </button>
         ) : prompt ? (
           <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-xs uppercase tracking-[0.22em] text-slate-300">
-            Pick a player to keep the run alive
+            {prompt.kind === "coach"
+              ? "Hire a coach to start the season sim"
+              : "Pick a player to keep the run alive"}
           </div>
         ) : null}
       </div>

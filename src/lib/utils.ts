@@ -1,5 +1,5 @@
 import { LINEUP_SLOTS, SLOT_POSITION_MAP } from "./constants";
-import type { DraftPrompt, Franchise, LineupAssignment, LineupSlotId, Player, PlayerPosition } from "../types";
+import type { Coach, DraftPrompt, Franchise, LineupAssignment, LineupSlotId, Player, PlayerPosition } from "../types";
 
 type RandomResult = {
   value: number;
@@ -43,6 +43,9 @@ export const getOpenSlots = (lineup: LineupAssignment): LineupSlotId[] =>
 export const getPlayerById = (players: Player[], playerId: string | null) =>
   playerId ? players.find((player) => player.id === playerId) ?? null : null;
 
+export const getCoachById = (coaches: Coach[], coachId: string | null) =>
+  coachId ? coaches.find((coach) => coach.id === coachId) ?? null : null;
+
 export const getEligibleLineupSlots = (
   player: Player,
   lineup: LineupAssignment,
@@ -74,7 +77,7 @@ export const getPromptPools = (players: Player[], franchises: Franchise[]) => {
         const key = `${team.franchiseId}:${decadeTag}`;
         const existing = poolMap.get(key);
         if (existing) {
-          existing.playerIds.push(player.id);
+          existing.candidateIds.push(player.id);
           return;
         }
 
@@ -82,11 +85,44 @@ export const getPromptPools = (players: Player[], franchises: Franchise[]) => {
           franchiseLookup[team.franchiseId]?.displayName ?? team.teamName;
 
         poolMap.set(key, {
+          kind: "player",
           franchiseId: team.franchiseId,
           franchiseName,
           decadeTag,
           poolLabel: `${franchiseName}, ${decadeTag}`,
-          playerIds: [player.id],
+          candidateIds: [player.id],
+        });
+      });
+    });
+  });
+
+  return [...poolMap.values()];
+};
+
+export const getCoachPromptPools = (coaches: Coach[], franchises: Franchise[]) => {
+  const franchiseLookup = buildFranchiseLookup(franchises);
+  const poolMap = new Map<string, DraftPrompt>();
+
+  coaches.forEach((coach) => {
+    coach.teams.forEach((team) => {
+      team.decadeTags.forEach((decadeTag) => {
+        const key = `${team.franchiseId}:${decadeTag}`;
+        const existing = poolMap.get(key);
+        if (existing) {
+          existing.candidateIds.push(coach.id);
+          return;
+        }
+
+        const franchiseName =
+          franchiseLookup[team.franchiseId]?.displayName ?? team.teamName;
+
+        poolMap.set(key, {
+          kind: "coach",
+          franchiseId: team.franchiseId,
+          franchiseName,
+          decadeTag,
+          poolLabel: `${franchiseName}, ${decadeTag}`,
+          candidateIds: [coach.id],
         });
       });
     });
@@ -99,6 +135,15 @@ export const getPlayerSeasonLabel = (player: Player, franchiseId?: string) => {
   const team = franchiseId
     ? player.teams.find((entry) => entry.franchiseId === franchiseId) ?? player.teams[0]
     : player.teams[0];
+
+  const decade = team.decadeTags[0] ?? getDecadeLabel(team.startSeason);
+  return `${team.teamName} • ${decade}`;
+};
+
+export const getCoachSeasonLabel = (coach: Coach, franchiseId?: string) => {
+  const team = franchiseId
+    ? coach.teams.find((entry) => entry.franchiseId === franchiseId) ?? coach.teams[0]
+    : coach.teams[0];
 
   const decade = team.decadeTags[0] ?? getDecadeLabel(team.startSeason);
   return `${team.teamName} • ${decade}`;

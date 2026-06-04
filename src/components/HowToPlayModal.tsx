@@ -22,7 +22,7 @@ export function HowToPlayModal({
     () => [
       "Spin for a franchise and decade, then pick one of the eligible legends shown.",
       "Confirm that player and the game auto-locks them into the natural open slot they can actually play.",
-      "Fill LW, C, RW, D1, D2, and G to simulate the season and see if you hit 82-0 or 84-0.",
+      "Fill LW, C, RW, D1, D2, and G, then draft a head coach to unlock the season sim and see if you hit 82-0 or 84-0.",
     ],
     [],
   );
@@ -124,11 +124,11 @@ export function HowToPlayModal({
           </div>
 
           <div className="mt-6 rounded-2xl border border-ember/20 bg-ember/10 p-4 text-sm text-slate-100">
-            Ratings are on a 0-100 scale. Skaters lean heavily on per-game scoring, with defense and era adjustment layered in. Goalies lean more on save percentage, GAA, wins, and shutouts. Fit and chemistry now have a bigger say than before, but role tags like Sniper and Playmaker are still descriptive only, not hidden chemistry buffs.
+            Ratings are on a 0-100 scale. Skaters now lean heavily on per-game scoring with stronger support for elite defensemen, while goalies prioritize wins first, then save percentage, awards, GAA, and shutouts. Role tags like Sniper and Playmaker are still descriptive only, not hidden chemistry buffs.
           </div>
 
           <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-slate-200">
-            Imported franchise-era pools are built from players who clear the current dataset cutoff. In this build, skaters qualify with 40 NHL games or 80 career points, while goalies qualify with 30 games or 20 wins. That keeps the pools from flooding with tiny samples while still allowing modern stars with real runway to show up.
+            Imported franchise-era pools are built from players who clear the current dataset cutoff. Forward eligibility is loosened with heuristics so left and right wings can swap, and some elite or playmaking centers can slide to the wing. Coaches are rated mostly by career wins, with Stanley Cup success and win percentage adding a moderate boost.
           </div>
         </div>
 

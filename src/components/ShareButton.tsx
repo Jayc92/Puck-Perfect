@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { downloadShareCard } from "../lib/shareCard";
-import type { LineupAssignment, Player, SeasonResult } from "../types";
+import type { Coach, LineupAssignment, Player, SeasonResult } from "../types";
 
 type ShareButtonProps = {
   summary: string;
@@ -8,9 +8,17 @@ type ShareButtonProps = {
   result: SeasonResult;
   lineup: LineupAssignment;
   players: Player[];
+  coach: Coach | null;
 };
 
-export function ShareButton({ summary, shareUrl, result, lineup, players }: ShareButtonProps) {
+export function ShareButton({
+  summary,
+  shareUrl,
+  result,
+  lineup,
+  players,
+  coach,
+}: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [sharedCard, setSharedCard] = useState(false);
@@ -30,7 +38,7 @@ export function ShareButton({ summary, shareUrl, result, lineup, players }: Shar
   const handleShareCard = async () => {
     setSharing(true);
     try {
-      await downloadShareCard(result, lineup, players);
+      await downloadShareCard(result, lineup, players, coach);
       setSharedCard(true);
       window.setTimeout(() => setSharedCard(false), 2200);
     } catch {

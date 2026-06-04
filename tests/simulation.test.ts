@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sampleCoaches } from "../src/data/sampleCoaches";
 import { samplePlayers } from "../src/data/samplePlayers";
 import { simulateSeason } from "../src/lib/simulation";
 
@@ -13,8 +14,8 @@ describe("season simulation", () => {
       G: "patrick-roy",
     } as const;
 
-    const first = simulateSeason(lineup, samplePlayers, 82);
-    const second = simulateSeason(lineup, samplePlayers, 82);
+    const first = simulateSeason(lineup, "scotty-bowman", samplePlayers, sampleCoaches, 82);
+    const second = simulateSeason(lineup, "scotty-bowman", samplePlayers, sampleCoaches, 82);
 
     expect(second).toEqual(first);
   });
@@ -29,8 +30,8 @@ describe("season simulation", () => {
       G: "patrick-roy",
     } as const;
 
-    const eightyTwo = simulateSeason(lineup, samplePlayers, 82);
-    const eightyFour = simulateSeason(lineup, samplePlayers, 84);
+    const eightyTwo = simulateSeason(lineup, "scotty-bowman", samplePlayers, sampleCoaches, 82);
+    const eightyFour = simulateSeason(lineup, "scotty-bowman", samplePlayers, sampleCoaches, 84);
 
     expect(eightyTwo.seasonGames).toBe(82);
     expect(eightyFour.seasonGames).toBe(84);

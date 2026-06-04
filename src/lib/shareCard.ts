@@ -1,5 +1,5 @@
 import { getPlayerById, getPlayerSeasonLabel, round } from "./utils";
-import type { LineupAssignment, Player, SeasonResult } from "../types";
+import type { Coach, LineupAssignment, Player, SeasonResult } from "../types";
 
 const CARD_WIDTH = 1080;
 const HEADER_HEIGHT = 212;
@@ -44,6 +44,7 @@ export const buildShareCardSvg = (
   result: SeasonResult,
   lineup: LineupAssignment,
   players: Player[],
+  coach: Coach | null,
 ) => {
   const lineupEntries = Object.entries(lineup)
     .map(([slot, playerId]) => ({
@@ -52,7 +53,9 @@ export const buildShareCardSvg = (
     }))
     .filter((entry): entry is { slot: string; player: Player } => Boolean(entry.player));
 
-  const cardHeight = HEADER_HEIGHT + lineupEntries.length * ROW_HEIGHT + FOOTER_HEIGHT;
+  const coachRowHeight = coach ? ROW_HEIGHT : 0;
+  const cardHeight =
+    HEADER_HEIGHT + lineupEntries.length * ROW_HEIGHT + coachRowHeight + FOOTER_HEIGHT;
   const gradeColor = getGradeColor(result.grade);
   const totalOvr = Math.round(result.teamRating * 1.1);
 
@@ -72,6 +75,19 @@ export const buildShareCardSvg = (
       </g>
     `;
   }).join("");
+
+  const coachRow = coach
+    ? `
+      <g transform="translate(${SIDE_PADDING}, ${HEADER_HEIGHT + lineupEntries.length * ROW_HEIGHT})">
+        <rect x="0" y="0" width="${CARD_WIDTH - SIDE_PADDING * 2}" height="92" rx="22" fill="rgba(17,26,45,0.96)" stroke="rgba(255,255,255,0.07)" />
+        <rect x="0" y="0" width="8" height="92" rx="8" fill="#7cf0da" />
+        <rect x="22" y="16" width="58" height="58" rx="16" fill="#7cf0da" fill-opacity="0.2" stroke="#7cf0da" stroke-opacity="0.28" />
+        <text x="51" y="52" font-family="'Trebuchet MS', 'Segoe UI', sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#ffffff">HC</text>
+        <text x="104" y="40" font-family="'Trebuchet MS', 'Segoe UI', sans-serif" font-size="22" font-weight="700" fill="#ffffff">${escapeXml(truncate(coach.name, 28))}</text>
+        <text x="104" y="68" font-family="'Trebuchet MS', 'Segoe UI', sans-serif" font-size="16" letter-spacing="1.5" fill="#7cf0da" fill-opacity="0.92">${escapeXml(truncate(coach.roleTag, 30))}</text>
+      </g>
+    `
+    : "";
 
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="${CARD_WIDTH}" height="${cardHeight}" viewBox="0 0 ${CARD_WIDTH} ${cardHeight}">
@@ -101,6 +117,7 @@ export const buildShareCardSvg = (
       <line x1="${SIDE_PADDING}" x2="${CARD_WIDTH - SIDE_PADDING}" y1="${HEADER_HEIGHT - 20}" y2="${HEADER_HEIGHT - 20}" stroke="rgba(255,255,255,0.08)" />
 
       ${rows}
+      ${coachRow}
 
       <line x1="${SIDE_PADDING}" x2="${CARD_WIDTH - SIDE_PADDING}" y1="${cardHeight - FOOTER_HEIGHT + 8}" y2="${cardHeight - FOOTER_HEIGHT + 8}" stroke="rgba(255,255,255,0.08)" />
       <text x="${SIDE_PADDING}" y="${cardHeight - 40}" font-family="'Trebuchet MS', 'Segoe UI', sans-serif" font-size="28" font-weight="700" fill="#ffffff">Can you go ${result.seasonGames}-0?</text>
@@ -151,8 +168,9 @@ export const downloadShareCard = async (
   result: SeasonResult,
   lineup: LineupAssignment,
   players: Player[],
+  coach: Coach | null,
 ) => {
-  const svg = buildShareCardSvg(result, lineup, players);
+  const svg = buildShareCardSvg(result, lineup, players, coach);
   const blob = await svgToPngBlob(svg);
   const file = new File([blob], "puck-perfect-share-card.png", {
     type: "image/png",

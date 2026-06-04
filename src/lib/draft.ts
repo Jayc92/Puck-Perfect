@@ -1,6 +1,6 @@
 import { EMPTY_LINEUP, LINEUP_SLOTS, SLOT_POSITION_MAP } from "./constants";
-import { getEligibleLineupSlots, getPlayerById, getPromptPools, getOpenSlots, randomInt, shuffleWithState } from "./utils";
-import type { DraftPrompt, Franchise, LineupAssignment, Player } from "../types";
+import { getCoachPromptPools, getEligibleLineupSlots, getPlayerById, getPromptPools, getOpenSlots, randomInt, shuffleWithState } from "./utils";
+import type { Coach, DraftPrompt, Franchise, LineupAssignment, Player } from "../types";
 
 type PromptBuildResult = {
   prompt: DraftPrompt | null;
@@ -15,18 +15,53 @@ export const createInitialLineup = (): LineupAssignment => ({ ...EMPTY_LINEUP })
 export const isLineupComplete = (lineup: LineupAssignment) =>
   LINEUP_SLOTS.every((slot) => Boolean(lineup[slot]));
 
+export const isRosterComplete = (lineup: LineupAssignment, coachId: string | null) =>
+  isLineupComplete(lineup) && Boolean(coachId);
+
 export const buildDraftPrompt = (
   players: Player[],
+  coaches: Coach[],
   franchises: Franchise[],
   lineup: LineupAssignment,
+  coachId: string | null,
   draftedPlayerIds: string[],
   rngState: number,
   lastPromptKey: string | null = null,
 ): PromptBuildResult => {
+  if (isLineupComplete(lineup) && !coachId) {
+    const coachPools = getCoachPromptPools(coaches, franchises)
+      .map((pool) => ({
+        pool,
+        eligible: pool.candidateIds.filter((candidateId) => candidateId !== coachId),
+      }))
+      .filter(({ eligible }) => eligible.length >= 2);
+
+    const filteredCoachPools =
+      lastPromptKey && coachPools.length > 1
+        ? coachPools.filter(({ pool }) => getPromptKey(pool) !== lastPromptKey)
+        : coachPools;
+
+    if (!filteredCoachPools.length) {
+      return { prompt: null, rngState };
+    }
+
+    const pickCoachPool = randomInt(rngState, filteredCoachPools.length);
+    const selectedCoachPool = filteredCoachPools[pickCoachPool.index];
+    const shuffledCoaches = shuffleWithState(selectedCoachPool.eligible, pickCoachPool.nextState);
+
+    return {
+      rngState: shuffledCoaches.nextState,
+      prompt: {
+        ...selectedCoachPool.pool,
+        candidateIds: shuffledCoaches.items,
+      },
+    };
+  }
+
   const openSlots = getOpenSlots(lineup);
   const allPools = getPromptPools(players, franchises)
     .map((pool) => {
-      const eligible = pool.playerIds
+      const eligible = pool.candidateIds
         .map((playerId) => getPlayerById(players, playerId))
         .filter((player): player is Player => Boolean(player))
         .filter(
@@ -66,7 +101,7 @@ export const buildDraftPrompt = (
     rngState: shuffled.nextState,
     prompt: {
       ...selectedPool.pool,
-      playerIds: shuffled.items.map((player) => player.id),
+      candidateIds: shuffled.items.map((player) => player.id),
     },
   };
 };
@@ -85,9 +120,9 @@ export const getAutoAssignSlot = (
   lineup: LineupAssignment,
 ) => getEligibleLineupSlots(player, lineup)[0] ?? null;
 
-export const parseShareCode = (value: string): { seasonGames: 82 | 84; lineup: LineupAssignment } | null => {
+export const parseShareCode = (value: string): { seasonGames: 82 | 84; lineup: LineupAssignment; coachId: string | null } | null => {
   const compactMatch = value.split("~");
-  if (compactMatch.length === 1 + LINEUP_SLOTS.length) {
+  if (compactMatch.length === 2 + LINEUP_SLOTS.length) {
     const seasonGames = Number(compactMatch[0]);
     if (seasonGames === 82 || seasonGames === 84) {
       const lineup = createInitialLineup();
@@ -95,7 +130,8 @@ export const parseShareCode = (value: string): { seasonGames: 82 | 84; lineup: L
         const playerId = compactMatch[index + 1];
         lineup[slot] = playerId === "open" ? null : playerId;
       });
-      return { seasonGames, lineup };
+      const coachId = compactMatch[1 + LINEUP_SLOTS.length] === "open" ? null : compactMatch[1 + LINEUP_SLOTS.length];
+      return { seasonGames, lineup, coachId };
     }
   }
 
@@ -121,5 +157,5 @@ export const parseShareCode = (value: string): { seasonGames: 82 | 84; lineup: L
     }
   });
 
-  return { seasonGames, lineup };
+  return { seasonGames, lineup, coachId: parts.coach === "open" || !parts.coach ? null : parts.coach };
 };

@@ -1,12 +1,14 @@
 import { getResultSummary } from "../lib/scoring";
-import { getPlayerById, getPlayerSeasonLabel } from "../lib/utils";
+import { getCoachById, getPlayerById, getPlayerSeasonLabel } from "../lib/utils";
 import { ShareButton } from "./ShareButton";
-import type { LineupAssignment, Player, SeasonResult } from "../types";
+import type { Coach, LineupAssignment, Player, SeasonResult } from "../types";
 
 type ResultPanelProps = {
   result: SeasonResult;
   lineup: LineupAssignment;
   players: Player[];
+  coaches: Coach[];
+  coachId: string | null;
   shareUrl: string;
   onNewDraft: () => void;
 };
@@ -15,10 +17,13 @@ export function ResultPanel({
   result,
   lineup,
   players,
+  coaches,
+  coachId,
   shareUrl,
   onNewDraft,
 }: ResultPanelProps) {
-  const summary = getResultSummary(result, lineup, players);
+  const summary = getResultSummary(result, lineup, players, coachId, coaches);
+  const coach = getCoachById(coaches, coachId);
 
   return (
     <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/10 to-white/[0.03] p-5 shadow-glow">
@@ -54,6 +59,7 @@ export function ResultPanel({
           result={result}
           lineup={lineup}
           players={players}
+          coach={coach}
         />
         <button
           type="button"
@@ -79,6 +85,29 @@ export function ResultPanel({
             />
           );
         })}
+
+        {coach ? (
+          <div className="grid gap-4 rounded-[1.5rem] border border-white/10 bg-slate-950/55 p-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-gradient-to-br from-aurora/30 to-ice/20 font-display text-lg uppercase tracking-[0.08em] text-white">
+                HC
+              </div>
+              <div>
+                <div className="font-display text-2xl uppercase tracking-[0.04em] text-white">
+                  {coach.name}
+                </div>
+                <div className="mt-1 text-sm uppercase tracking-[0.12em] text-slate-300">
+                  {coach.roleTag}
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-sm text-slate-200">
+              <StatCell label="WINS" value={coach.stats.wins} />
+              <StatCell label="WIN%" value={coach.stats.winPct.toFixed(3)} />
+              <StatCell label="CUPS" value={coach.stats.cups} />
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
@@ -104,10 +133,10 @@ export function ResultPanel({
       <div className="mt-6 rounded-[1.5rem] border border-ice/15 bg-ice/8 p-4 text-sm leading-6 text-slate-100">
         <div className="text-xs uppercase tracking-[0.3em] text-ice/75">How Rating Works</div>
         <p className="mt-3">
-          Forwards are 41% of the final score, defense 26%, goalie 23%, and fit plus chemistry 10%. Offensive rates, defensive estimates, awards bonuses, and era normalization all feed the player grades, while balance across the lineup matters more than stacking six scorers.
+          Forwards are 34% of the final score, defense 22%, goalie 22%, coach 6%, and fit plus chemistry 16%. Elite defensemen and goalies now scale much closer to elite forwards, with direct per-game production, legacy scoring volume, awards, and era normalization all feeding the final grades.
         </p>
         <p className="mt-2 text-slate-300">
-          Some older defensive inputs are estimated conservatively when historical stat coverage is incomplete.
+          Goalie grades lean wins first, then save percentage, awards, GAA, and shutouts. Some older defensive inputs are still estimated conservatively when historical stat coverage is incomplete.
         </p>
       </div>
     </section>

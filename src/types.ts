@@ -1,4 +1,5 @@
 export type PlayerPosition = "LW" | "C" | "RW" | "D" | "G";
+export type DraftEntityKind = "player" | "coach";
 
 export type LineupSlotId = "LW" | "C" | "RW" | "D1" | "D2" | "G";
 
@@ -57,11 +58,28 @@ export type Franchise = {
 };
 
 export type DraftPrompt = {
+  kind: DraftEntityKind;
   franchiseId: string;
   franchiseName: string;
   decadeTag: string;
   poolLabel: string;
-  playerIds: string[];
+  candidateIds: string[];
+};
+
+export type CoachStats = {
+  wins: number;
+  winPct: number;
+  cups: number;
+};
+
+export type Coach = {
+  id: string;
+  name: string;
+  franchiseIds: string[];
+  teams: TeamTenure[];
+  stats: CoachStats;
+  roleTag: string;
+  sourceQuality: "sample" | "imported" | "verified";
 };
 
 export type LineupAssignment = Record<LineupSlotId, string | null>;
@@ -82,10 +100,21 @@ export type TeamRatingBreakdown = {
   forwardUnit: number;
   defenseUnit: number;
   goalieUnit: number;
+  coachUnit: number;
   chemistry: number;
   fitScore: number;
   balanceScore: number;
   playerBreakdowns: Record<LineupSlotId, PlayerRatingBreakdown>;
+  coachBreakdown: CoachRatingBreakdown | null;
+  notes: string[];
+};
+
+export type CoachRatingBreakdown = {
+  coachId: string;
+  rating: number;
+  winsScore: number;
+  efficiencyScore: number;
+  cupsBonus: number;
   notes: string[];
 };
 
@@ -108,6 +137,7 @@ export type PersistedGameState = {
   version: number;
   status: GameStatus;
   lineup: LineupAssignment;
+  coachId: string | null;
   draftedPlayerIds: string[];
   currentPrompt: DraftPrompt | null;
   lastPromptKey: string | null;

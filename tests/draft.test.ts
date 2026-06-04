@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sampleCoaches } from "../src/data/sampleCoaches";
 import { sampleFranchises } from "../src/data/sampleFranchises";
 import { samplePlayers } from "../src/data/samplePlayers";
 import { buildDraftPrompt, createInitialLineup, parseShareCode } from "../src/lib/draft";
@@ -8,17 +9,19 @@ describe("draft prompt generation", () => {
   it("returns a valid prompt with a draftable player pool", () => {
     const result = buildDraftPrompt(
       samplePlayers,
+      sampleCoaches,
       sampleFranchises,
       createInitialLineup(),
+      null,
       [],
       123456,
     );
 
     expect(result.prompt).not.toBeNull();
-    expect(result.prompt?.playerIds.length).toBeGreaterThanOrEqual(3);
-    expect(new Set(result.prompt?.playerIds).size).toBe(result.prompt?.playerIds.length);
+    expect(result.prompt?.candidateIds.length).toBeGreaterThanOrEqual(3);
+    expect(new Set(result.prompt?.candidateIds).size).toBe(result.prompt?.candidateIds.length);
 
-    const players = result.prompt?.playerIds.map((playerId) =>
+    const players = result.prompt?.candidateIds.map((playerId) =>
       samplePlayers.find((player) => player.id === playerId),
     );
     expect(players.every(Boolean)).toBe(true);
@@ -43,20 +46,23 @@ describe("draft prompt generation", () => {
       G: "martin-brodeur",
     } as const;
 
-    const shareCode = buildShareCode(lineup, 84);
+    const shareCode = buildShareCode(lineup, "scotty-bowman", 84);
     const parsed = parseShareCode(shareCode);
 
     expect(parsed).toEqual({
       seasonGames: 84,
       lineup,
+      coachId: "scotty-bowman",
     });
   });
 
   it("avoids repeating the same franchise-era prompt in back-to-back rounds when alternatives exist", () => {
     const first = buildDraftPrompt(
       samplePlayers,
+      sampleCoaches,
       sampleFranchises,
       createInitialLineup(),
+      null,
       [],
       123456,
     );
@@ -65,8 +71,10 @@ describe("draft prompt generation", () => {
 
     const second = buildDraftPrompt(
       samplePlayers,
+      sampleCoaches,
       sampleFranchises,
       createInitialLineup(),
+      null,
       [],
       first.rngState,
       `${first.prompt?.franchiseId}:${first.prompt?.decadeTag}`,

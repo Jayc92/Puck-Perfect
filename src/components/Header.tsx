@@ -28,7 +28,7 @@ export function Header({
                 Puck Perfect
               </p>
               <p className="text-xs uppercase tracking-[0.24em] text-slate-300">
-                Round {Math.min(draftedCount + 1, 6)} of 6
+                Round {Math.min(draftedCount + 1, 7)} of 7
               </p>
             </div>
           </div>
@@ -60,21 +60,15 @@ export function Header({
               Puck Perfect
             </p>
             <p className="mt-2 max-w-2xl text-sm text-slate-200 sm:text-base">
-              Draft a six-player all-time lineup, chase {seasonGames}-0, and see if your hockey superteam can finish a perfect season.
+              Draft a six-player all-time lineup plus a head coach, chase {seasonGames}-0, and see if your hockey superteam can finish a perfect season.
             </p>
           </div>
         </div>
 
-        <div className="grid gap-3 text-sm text-slate-200 sm:grid-cols-2">
+        <div className="grid gap-3 text-sm text-slate-200 sm:grid-cols-1">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
             <div className="text-[0.7rem] uppercase tracking-[0.25em] text-ice/75">Target</div>
             <div className="mt-1 font-display text-2xl text-white">{seasonGames}-0</div>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-            <div className="text-[0.7rem] uppercase tracking-[0.25em] text-ice/75">Data</div>
-            <div className="mt-1 text-sm text-white">
-              {isSampleDataset ? "Sample roster included" : "Expanded roster loaded"}
-            </div>
           </div>
         </div>
       </div>

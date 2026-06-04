@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { CoachCard } from "./components/CoachCard";
 import { DraftSpinner } from "./components/DraftSpinner";
 import { Header } from "./components/Header";
 import { HowToPlayModal } from "./components/HowToPlayModal";
@@ -14,16 +15,53 @@ import {
   loadPlayerDataset,
   type PlayerDataset,
 } from "./data/playerDataset";
-import { assignPlayerToSlot, buildDraftPrompt, createInitialLineup, getAutoAssignSlot, getPromptKey, isLineupComplete, parseShareCode } from "./lib/draft";
-import { CURRENT_GAME_STATE_VERSION, EMPTY_LINEUP, LINEUP_SLOTS } from "./lib/constants";
-import { calculatePlayerRating } from "./lib/scoring";
-import { clearSavedGame, loadSavedGame, loadTutorialHidden, saveGame, saveTutorialHidden } from "./lib/storage";
+import {
+  assignPlayerToSlot,
+  buildDraftPrompt,
+  createInitialLineup,
+  getAutoAssignSlot,
+  getPromptKey,
+  isLineupComplete,
+  isRosterComplete,
+  parseShareCode,
+} from "./lib/draft";
+import {
+  CURRENT_GAME_STATE_VERSION,
+  EMPTY_LINEUP,
+  LINEUP_SLOTS,
+} from "./lib/constants";
+import {
+  calculateCoachRating,
+  calculatePlayerRating,
+} from "./lib/scoring";
+import {
+  clearSavedGame,
+  loadSavedGame,
+  loadTutorialHidden,
+  saveGame,
+  saveTutorialHidden,
+} from "./lib/storage";
 import { simulateSeason } from "./lib/simulation";
-import { getEligibleLineupSlots, getPlayerById, hashString } from "./lib/utils";
-import type { DraftPrompt, GameStatus, LineupAssignment, PersistedGameState, Player, PlayerPosition, SeasonResult } from "./types";
+import {
+  getCoachById,
+  getEligibleLineupSlots,
+  getPlayerById,
+  hashString,
+} from "./lib/utils";
+import type {
+  Coach,
+  DraftPrompt,
+  GameStatus,
+  LineupAssignment,
+  PersistedGameState,
+  Player,
+  PlayerPosition,
+  SeasonResult,
+} from "./types";
 
 type PlayerPoolFilter = "ALL" | "F" | "D" | "G" | "OPEN";
 type PlayerPoolSort = "bestFit" | "points" | "goals" | "assists" | "name";
+
 const DEFAULT_VISIBLE_POOL_COUNT = 24;
 
 function App() {
@@ -31,20 +69,26 @@ function App() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [status, setStatus] = useState<GameStatus>("intro");
   const [lineup, setLineup] = useState<LineupAssignment>({ ...EMPTY_LINEUP });
+  const [coachId, setCoachId] = useState<string | null>(null);
   const [draftedPlayerIds, setDraftedPlayerIds] = useState<string[]>([]);
   const [currentPrompt, setCurrentPrompt] = useState<DraftPrompt | null>(null);
   const [lastPromptKey, setLastPromptKey] = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [seasonGames, setSeasonGames] = useState<82 | 84>(82);
-  const [rngState, setRngState] = useState<number>(hashString("puck-perfect-default"));
+  const [rngState, setRngState] = useState<number>(
+    hashString("puck-perfect-default"),
+  );
   const [result, setResult] = useState<SeasonResult | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [hideTutorialInFuture, setHideTutorialInFuture] = useState(false);
   const [playerSearch, setPlayerSearch] = useState("");
-  const [playerFilter, setPlayerFilter] = useState<PlayerPoolFilter>("ALL");
+  const [playerFilter, setPlayerFilter] =
+    useState<PlayerPoolFilter>("ALL");
   const [playerSort, setPlayerSort] = useState<PlayerPoolSort>("bestFit");
-  const [visiblePoolCount, setVisiblePoolCount] = useState(DEFAULT_VISIBLE_POOL_COUNT);
+  const [visiblePoolCount, setVisiblePoolCount] = useState(
+    DEFAULT_VISIBLE_POOL_COUNT,
+  );
 
   useEffect(() => {
     let active = true;
@@ -76,11 +120,18 @@ function App() {
         parseShareCode(sharedHash) ??
         parseShareCode(decodeURIComponent(sharedHash));
       if (sharedState) {
-        const sharedResult = simulateSeason(sharedState.lineup, dataset.players, sharedState.seasonGames);
-        const sharedDraftedIds = LINEUP_SLOTS.map((slot) => sharedState.lineup[slot]).filter(
-          (playerId): playerId is string => Boolean(playerId),
+        const sharedResult = simulateSeason(
+          sharedState.lineup,
+          sharedState.coachId,
+          dataset.players,
+          dataset.coaches,
+          sharedState.seasonGames,
         );
+        const sharedDraftedIds = LINEUP_SLOTS.map(
+          (slot) => sharedState.lineup[slot],
+        ).filter((playerId): playerId is string => Boolean(playerId));
         setLineup(sharedState.lineup);
+        setCoachId(sharedState.coachId);
         setDraftedPlayerIds(sharedDraftedIds);
         setSeasonGames(sharedState.seasonGames);
         setResult(sharedResult);
@@ -98,6 +149,7 @@ function App() {
 
     setStatus(savedGame.status);
     setLineup(savedGame.lineup);
+    setCoachId(savedGame.coachId);
     setDraftedPlayerIds(savedGame.draftedPlayerIds);
     setCurrentPrompt(savedGame.currentPrompt);
     setLastPromptKey(savedGame.lastPromptKey);
@@ -117,6 +169,7 @@ function App() {
       version: CURRENT_GAME_STATE_VERSION,
       status,
       lineup,
+      coachId,
       draftedPlayerIds,
       currentPrompt,
       lastPromptKey,
@@ -127,29 +180,44 @@ function App() {
     };
 
     saveGame(stateToSave);
-  }, [status, lineup, draftedPlayerIds, currentPrompt, lastPromptKey, selectedPlayerId, seasonGames, rngState, result]);
+  }, [
+    coachId,
+    currentPrompt,
+    draftedPlayerIds,
+    isHydrated,
+    lastPromptKey,
+    lineup,
+    result,
+    rngState,
+    seasonGames,
+    selectedPlayerId,
+    status,
+  ]);
 
   useEffect(() => {
     if (result) {
       window.location.hash = result.shareCode;
     } else if (window.location.hash) {
-      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
     }
   }, [result]);
 
   useEffect(() => {
-    if (status !== "spinning") {
+    if (status !== "spinning" || !dataset) {
       return;
     }
 
     const timeout = window.setTimeout(() => {
-      if (!dataset) {
-        return;
-      }
       const promptResult = buildDraftPrompt(
         dataset.players,
+        dataset.coaches,
         dataset.franchises,
         lineup,
+        coachId,
         draftedPlayerIds,
         rngState,
         lastPromptKey,
@@ -161,46 +229,80 @@ function App() {
     }, 1300);
 
     return () => window.clearTimeout(timeout);
-  }, [status, lineup, draftedPlayerIds, rngState, dataset, lastPromptKey]);
+  }, [
+    coachId,
+    dataset,
+    draftedPlayerIds,
+    lastPromptKey,
+    lineup,
+    rngState,
+    status,
+  ]);
 
   useEffect(() => {
-    if (status !== "complete") {
+    if (status !== "complete" || !dataset) {
       return;
     }
 
     const timeout = window.setTimeout(() => {
-      if (!dataset) {
-        return;
-      }
-      const nextResult = simulateSeason(lineup, dataset.players, seasonGames);
+      const nextResult = simulateSeason(
+        lineup,
+        coachId,
+        dataset.players,
+        dataset.coaches,
+        seasonGames,
+      );
       setResult(nextResult);
       setStatus("results");
     }, 650);
 
     return () => window.clearTimeout(timeout);
-  }, [status, lineup, seasonGames, dataset]);
+  }, [coachId, dataset, lineup, seasonGames, status]);
+
   const fallbackDataset = getFallbackPlayerDataset();
-  const activePlayers = dataset?.players ?? fallbackDataset.players;
   const activeDataset = dataset ?? fallbackDataset;
+  const activePlayers = activeDataset.players;
+  const activeCoaches = activeDataset.coaches;
 
   const selectedPlayer = useMemo(
-    () => getPlayerById(activePlayers, selectedPlayerId),
-    [activePlayers, selectedPlayerId],
+    () =>
+      currentPrompt?.kind === "player"
+        ? getPlayerById(activePlayers, selectedPlayerId)
+        : null,
+    [activePlayers, currentPrompt?.kind, selectedPlayerId],
+  );
+
+  const selectedCoach = useMemo(
+    () =>
+      currentPrompt?.kind === "coach"
+        ? getCoachById(activeCoaches, selectedPlayerId)
+        : null,
+    [activeCoaches, currentPrompt?.kind, selectedPlayerId],
   );
 
   const promptPlayers = useMemo(
     () =>
-      currentPrompt?.playerIds
-        .map((playerId) => getPlayerById(activePlayers, playerId))
-        .filter((player): player is NonNullable<typeof player> => Boolean(player)) ?? [],
-    [currentPrompt, activePlayers],
+      currentPrompt?.kind === "player"
+        ? currentPrompt.candidateIds
+            .map((playerId) => getPlayerById(activePlayers, playerId))
+            .filter((player): player is Player => Boolean(player))
+        : [],
+    [activePlayers, currentPrompt],
+  );
+
+  const promptCoaches = useMemo(
+    () =>
+      currentPrompt?.kind === "coach"
+        ? currentPrompt.candidateIds
+            .map((candidateId) => getCoachById(activeCoaches, candidateId))
+            .filter((coach): coach is Coach => Boolean(coach))
+        : [],
+    [activeCoaches, currentPrompt],
   );
 
   const playerRatings = useMemo(() => {
     const ratings: Partial<Record<keyof LineupAssignment, number>> = {};
-    if (!dataset) {
-      return ratings;
-    }
+
     LINEUP_SLOTS.forEach((slot) => {
       const player = getPlayerById(activePlayers, lineup[slot]);
       if (!player) {
@@ -208,18 +310,26 @@ function App() {
       }
       ratings[slot] = calculatePlayerRating(player, slot).rating;
     });
+
     return ratings;
-  }, [lineup, dataset, activePlayers]);
+  }, [activePlayers, lineup]);
+
+  const coachOverall = useMemo(() => {
+    const coach = getCoachById(activeCoaches, coachId);
+    return coach ? calculateCoachRating(coach).rating : undefined;
+  }, [activeCoaches, coachId]);
 
   const shareUrl = useMemo(() => {
     const location = window.location;
     return `${location.origin}${location.pathname}#${result?.shareCode ?? ""}`;
   }, [result]);
 
-  const selectedPlayerAutoSlot = selectedPlayer
-    ? getAutoAssignSlot(selectedPlayer, lineup)
-    : null;
-  const hasCompleteLineup = isLineupComplete(lineup);
+  const selectedPlayerAutoSlot =
+    currentPrompt?.kind === "player" && selectedPlayer
+      ? getAutoAssignSlot(selectedPlayer, lineup)
+      : null;
+  const hasCompleteRoster = isRosterComplete(lineup, coachId);
+
   const openSlotPositions = useMemo(
     () =>
       new Set(
@@ -235,11 +345,8 @@ function App() {
     const basePlayers = promptPlayers.filter((player) => {
       const matchesQuery =
         !query ||
-        [
-          player.name,
-          player.roleTag,
-          ...player.teams.map((team) => team.teamName),
-        ].some((value) => value.toLowerCase().includes(query));
+        [player.name, player.roleTag, ...player.teams.map((team) => team.teamName)]
+          .some((value) => value.toLowerCase().includes(query));
 
       const matchesFilter = (() => {
         switch (playerFilter) {
@@ -250,7 +357,9 @@ function App() {
           case "G":
             return player.primaryPosition === "G";
           case "OPEN":
-            return player.eligiblePositions.some((position) => openSlotPositions.has(position));
+            return player.eligiblePositions.some((position) =>
+              openSlotPositions.has(position),
+            );
           default:
             return true;
         }
@@ -289,11 +398,18 @@ function App() {
           return getPreviewOverall(right) - getPreviewOverall(left);
       }
     });
-  }, [playerSearch, playerFilter, playerSort, promptPlayers, openSlotPositions, lineup]);
+  }, [
+    lineup,
+    openSlotPositions,
+    playerFilter,
+    playerSearch,
+    playerSort,
+    promptPlayers,
+  ]);
 
   useEffect(() => {
     setVisiblePoolCount(DEFAULT_VISIBLE_POOL_COUNT);
-  }, [currentPrompt, playerSearch, playerFilter, playerSort]);
+  }, [currentPrompt, playerFilter, playerSearch, playerSort]);
 
   const visiblePoolPlayers = useMemo(
     () => filteredPoolPlayers.slice(0, visiblePoolCount),
@@ -305,16 +421,19 @@ function App() {
     [lineup],
   );
 
+  const draftedEntityCount = draftedPlayerIds.length + (coachId ? 1 : 0);
+
   const beginSpin = () => {
     if (
       currentPrompt ||
       status === "assigningSlot" ||
       status === "spinning" ||
       status === "complete" ||
-      hasCompleteLineup
+      hasCompleteRoster
     ) {
       return;
     }
+
     setCurrentPrompt(null);
     setSelectedPlayerId(null);
     setPlayerSearch("");
@@ -337,8 +456,8 @@ function App() {
     handleStartDraft();
   };
 
-  const handleSelectPlayer = (playerId: string) => {
-    setSelectedPlayerId(playerId);
+  const handleSelectCandidate = (candidateId: string) => {
+    setSelectedPlayerId(candidateId);
     setStatus("assigningSlot");
   };
 
@@ -348,11 +467,28 @@ function App() {
   };
 
   const handleConfirmSelection = () => {
-    if (!selectedPlayerId || !selectedPlayerAutoSlot) {
+    if (!selectedPlayerId || !currentPrompt) {
       return;
     }
 
-    const nextLineup = assignPlayerToSlot(lineup, selectedPlayerAutoSlot, selectedPlayerId);
+    if (currentPrompt.kind === "coach") {
+      setCoachId(selectedPlayerId);
+      setSelectedPlayerId(null);
+      setCurrentPrompt(null);
+      setResult(null);
+      setStatus("complete");
+      return;
+    }
+
+    if (!selectedPlayerAutoSlot) {
+      return;
+    }
+
+    const nextLineup = assignPlayerToSlot(
+      lineup,
+      selectedPlayerAutoSlot,
+      selectedPlayerId,
+    );
     const nextDrafted = [...draftedPlayerIds, selectedPlayerId];
 
     setLineup(nextLineup);
@@ -362,7 +498,7 @@ function App() {
     setResult(null);
 
     if (isLineupComplete(nextLineup)) {
-      setStatus("complete");
+      setStatus("ready");
     } else {
       setStatus("ready");
     }
@@ -370,8 +506,10 @@ function App() {
 
   const handleSeasonToggle = (value: 82 | 84) => {
     setSeasonGames(value);
-    if (result && isLineupComplete(lineup) && dataset) {
-      setResult(simulateSeason(lineup, dataset.players, value));
+    if (result && hasCompleteRoster && dataset) {
+      setResult(
+        simulateSeason(lineup, coachId, dataset.players, dataset.coaches, value),
+      );
       setStatus("results");
     }
   };
@@ -380,6 +518,7 @@ function App() {
     const freshSeed = hashString(`${Date.now()}`);
     setStatus("intro");
     setLineup(createInitialLineup());
+    setCoachId(null);
     setDraftedPlayerIds([]);
     setCurrentPrompt(null);
     setLastPromptKey(null);
@@ -390,7 +529,11 @@ function App() {
     setRngState(freshSeed);
     setResult(null);
     clearSavedGame();
-    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + window.location.search,
+    );
   };
 
   const closeTutorial = () => {
@@ -406,15 +549,19 @@ function App() {
             seasonGames={seasonGames}
             isSampleDataset={activeDataset.isSample}
             status={status}
-            draftedCount={draftedPlayerIds.length}
+            draftedCount={draftedEntityCount}
           />
           <section className="rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-glow">
-            <p className="text-xs uppercase tracking-[0.3em] text-ice/70">Loading Player Pool</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-ice/70">
+              Loading Player Pool
+            </p>
             <h2 className="mt-3 font-display text-3xl uppercase tracking-[0.12em] text-white">
               Warming up the historical boards
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-200">
-              Puck Perfect is loading the best available NHL dataset for this build. If no generated import is present, it will fall back to the bundled sample roster automatically.
+              Puck Perfect is loading the best available NHL dataset for this
+              build. If no generated import is present, it will fall back to the
+              bundled sample roster automatically.
             </p>
           </section>
         </div>
@@ -423,7 +570,11 @@ function App() {
   }
 
   return (
-    <div className={`mx-auto min-h-screen max-w-7xl px-4 py-6 font-body sm:px-6 lg:px-8 ${selectedPlayer ? "pb-32 md:pb-6" : ""}`}>
+    <div
+      className={`mx-auto min-h-screen max-w-7xl px-4 py-6 font-body sm:px-6 lg:px-8 ${
+        selectedPlayer || selectedCoach ? "pb-32 md:pb-6" : ""
+      }`}
+    >
       <HowToPlayModal
         isOpen={showTutorial}
         onClose={closeTutorial}
@@ -443,7 +594,7 @@ function App() {
           seasonGames={seasonGames}
           isSampleDataset={activeDataset.isSample}
           status={status}
-          draftedCount={draftedPlayerIds.length}
+          draftedCount={draftedEntityCount}
         />
 
         <div className="flex flex-col gap-3 rounded-[1.75rem] border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -478,14 +629,16 @@ function App() {
 
         {status !== "intro" && status !== "results" ? (
           <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
-          <div className="order-2 space-y-6 xl:order-1">
+            <div className="order-2 space-y-6 xl:order-1">
               <DraftSpinner
                 status={status}
                 prompt={currentPrompt}
                 onSpin={beginSpin}
-                canSpin={!hasCompleteLineup && !currentPrompt && status === "ready"}
+                canSpin={!hasCompleteRoster && !currentPrompt && status === "ready"}
                 spinFranchiseNames={[
-                  ...new Set(activeDataset.franchises.map((franchise) => franchise.displayName)),
+                  ...new Set(
+                    activeDataset.franchises.map((franchise) => franchise.displayName),
+                  ),
                 ]}
                 spinEras={[
                   ...new Set(
@@ -499,13 +652,19 @@ function App() {
               <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-glow">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-ice/70">Player Board</p>
+                    <p className="text-xs uppercase tracking-[0.3em] text-ice/70">
+                      {currentPrompt?.kind === "coach" ? "Coach Board" : "Player Board"}
+                    </p>
                     <h2 className="mt-2 font-display text-2xl uppercase tracking-[0.12em] text-white">
                       {status === "assigningSlot"
-                        ? "Confirm your pick"
-                        : currentPrompt
-                          ? "Eligible players"
-                          : "Spin to reveal candidates"}
+                        ? currentPrompt?.kind === "coach"
+                          ? "Confirm your coach"
+                          : "Confirm your pick"
+                        : currentPrompt?.kind === "coach"
+                          ? "Eligible coaches"
+                          : currentPrompt
+                            ? "Eligible players"
+                            : "Spin to reveal candidates"}
                     </h2>
                   </div>
                   {activeDataset.isSample ? (
@@ -526,7 +685,11 @@ function App() {
                           {selectedPlayer.name}
                         </div>
                         <div className="mt-2 text-sm text-slate-200">
-                          This pick will auto-lock into <span className="font-semibold text-white">{selectedPlayerAutoSlot}</span>.
+                          This pick will auto-lock into{" "}
+                          <span className="font-semibold text-white">
+                            {selectedPlayerAutoSlot}
+                          </span>
+                          .
                         </div>
                         <div className="mt-4 flex flex-wrap gap-3">
                           <button
@@ -553,8 +716,15 @@ function App() {
                           Eligible for your open slots
                         </div>
                         <div className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                          Showing {Math.min(visiblePoolPlayers.length, filteredPoolPlayers.length)} of {filteredPoolPlayers.length}
-                          {filteredPoolPlayers.length !== promptPlayers.length ? ` filtered from ${promptPlayers.length}` : ""}
+                          Showing{" "}
+                          {Math.min(
+                            visiblePoolPlayers.length,
+                            filteredPoolPlayers.length,
+                          )}{" "}
+                          of {filteredPoolPlayers.length}
+                          {filteredPoolPlayers.length !== promptPlayers.length
+                            ? ` filtered from ${promptPlayers.length}`
+                            : ""}
                         </div>
                       </div>
 
@@ -563,7 +733,7 @@ function App() {
                           Open slots: {openSlotSummary}
                         </span>
                         <span className="rounded-full border border-ice/20 bg-ice/10 px-3 py-2 text-ice">
-                          Only players who fit those open slots are shown
+                          Heuristic forward flexibility is enabled
                         </span>
                       </div>
 
@@ -605,7 +775,9 @@ function App() {
 
                         <select
                           value={playerSort}
-                          onChange={(event) => setPlayerSort(event.target.value as PlayerPoolSort)}
+                          onChange={(event) =>
+                            setPlayerSort(event.target.value as PlayerPoolSort)
+                          }
                           aria-label="Sort player pool"
                           className="rounded-xl border border-white/10 bg-[#121b2f] px-4 py-3 text-sm text-white"
                         >
@@ -623,7 +795,13 @@ function App() {
                         const previewSlot = getEligibleLineupSlots(player, lineup)[0];
                         const overall = previewSlot
                           ? calculatePlayerRating(player, previewSlot).rating
-                          : calculatePlayerRating(player, player.primaryPosition === "D" ? "D1" : player.primaryPosition as "LW" | "C" | "RW" | "G").rating;
+                          : calculatePlayerRating(
+                              player,
+                              player.primaryPosition === "D"
+                                ? "D1"
+                                : (player.primaryPosition as "LW" | "C" | "RW" | "G"),
+                            ).rating;
+
                         return (
                           <PlayerCard
                             key={player.id}
@@ -633,12 +811,14 @@ function App() {
                             selected={selectedPlayerId === player.id}
                             muted={Boolean(selectedPlayerId && selectedPlayerId !== player.id)}
                             actionLabel={
-                              selectedPlayerId === player.id ? "Confirm Selection" : "Draft Player"
+                              selectedPlayerId === player.id
+                                ? "Confirm Selection"
+                                : "Draft Player"
                             }
                             onAction={() =>
                               selectedPlayerId === player.id
                                 ? handleConfirmSelection()
-                                : handleSelectPlayer(player.id)
+                                : handleSelectCandidate(player.id)
                             }
                             layout="row"
                           />
@@ -655,7 +835,10 @@ function App() {
                           type="button"
                           onClick={() =>
                             setVisiblePoolCount((count) =>
-                              Math.min(count + DEFAULT_VISIBLE_POOL_COUNT, filteredPoolPlayers.length),
+                              Math.min(
+                                count + DEFAULT_VISIBLE_POOL_COUNT,
+                                filteredPoolPlayers.length,
+                              ),
                             )
                           }
                           className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs uppercase tracking-[0.2em] text-white transition hover:bg-white/[0.12]"
@@ -688,25 +871,92 @@ function App() {
                       </div>
                     ) : null}
                   </div>
+                ) : promptCoaches.length ? (
+                  <div className="mt-5 space-y-4">
+                    {selectedCoach ? (
+                      <div className="rounded-[1.4rem] border border-aurora/25 bg-aurora/10 p-4">
+                        <div className="text-xs uppercase tracking-[0.24em] text-aurora">
+                          Confirm head coach
+                        </div>
+                        <div className="mt-2 font-display text-2xl uppercase tracking-[0.08em] text-white">
+                          {selectedCoach.name}
+                        </div>
+                        <div className="mt-2 text-sm text-slate-200">
+                          This coach adds a small but meaningful season-long edge.
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={handleConfirmSelection}
+                            className="rounded-full border border-aurora/40 bg-aurora px-4 py-3 text-sm uppercase tracking-[0.18em] text-ink transition hover:brightness-110"
+                          >
+                            Confirm Coach
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelSelection}
+                            className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-3 text-sm uppercase tracking-[0.18em] text-slate-200 transition hover:bg-white/[0.1]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4">
+                      <div className="text-xs uppercase tracking-[0.26em] text-slate-400">
+                        Bench boss round
+                      </div>
+                      <div className="mt-2 text-sm text-slate-200">
+                        Career wins lead the coach grade, with win percentage and Stanley Cups adding support.
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {promptCoaches.map((coach) => (
+                        <CoachCard
+                          key={coach.id}
+                          coach={coach}
+                          overall={calculateCoachRating(coach).rating}
+                          franchiseId={currentPrompt?.franchiseId}
+                          selected={selectedPlayerId === coach.id}
+                          muted={Boolean(selectedPlayerId && selectedPlayerId !== coach.id)}
+                          actionLabel={
+                            selectedPlayerId === coach.id
+                              ? "Confirm Coach"
+                              : "Hire Coach"
+                          }
+                          onAction={() =>
+                            selectedPlayerId === coach.id
+                              ? handleConfirmSelection()
+                              : handleSelectCandidate(coach.id)
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ) : (
                   <div className="mt-5 rounded-[1.5rem] border border-dashed border-white/10 bg-slate-950/40 p-6 text-sm leading-6 text-slate-300">
                     {status === "complete"
-                      ? "Lineup locked. Running the season simulation now."
-                      : "No active player pool yet. Spin the board to pull in a valid franchise-era group."}
+                      ? "Roster locked. Running the season simulation now."
+                      : "No active pool yet. Spin the board to pull in a valid franchise-era group."}
                   </div>
                 )}
               </section>
-          </div>
+            </div>
 
-          <div className="order-1 xl:order-2">
-            <LineupBoard
-              lineup={lineup}
-              players={activePlayers}
-              selectedPlayer={selectedPlayer}
-              pendingSlot={selectedPlayerAutoSlot}
-              playerRatings={playerRatings}
-            />
-          </div>
+            <div className="order-1 xl:order-2">
+              <LineupBoard
+                lineup={lineup}
+                players={activePlayers}
+                selectedPlayer={selectedPlayer}
+                pendingSlot={selectedPlayerAutoSlot}
+                playerRatings={playerRatings}
+                coach={getCoachById(activeCoaches, coachId)}
+                coachOverall={coachOverall}
+                coachPending={Boolean(currentPrompt?.kind === "coach")}
+              />
+            </div>
           </div>
         ) : null}
 
@@ -715,6 +965,8 @@ function App() {
             result={result}
             lineup={lineup}
             players={activePlayers}
+            coaches={activeCoaches}
+            coachId={coachId}
             shareUrl={shareUrl}
             onNewDraft={handleNewDraft}
           />
@@ -729,7 +981,9 @@ function App() {
       {selectedPlayer && selectedPlayerAutoSlot ? (
         <div className="fixed inset-x-3 bottom-3 z-40 rounded-[1.5rem] border border-ember/25 bg-[#10182b]/95 p-4 shadow-glow backdrop-blur md:hidden">
           <div className="text-center">
-            <div className="text-xs uppercase tracking-[0.24em] text-ember">Confirm Pick</div>
+            <div className="text-xs uppercase tracking-[0.24em] text-ember">
+              Confirm Pick
+            </div>
             <div className="mt-2 font-display text-2xl uppercase tracking-[0.06em] text-white">
               {selectedPlayer.name}
             </div>
@@ -753,8 +1007,37 @@ function App() {
               Cancel
             </button>
           </div>
-          <div className="mt-3 text-center text-xs uppercase tracking-[0.2em] text-slate-400">
-            Only players who fit your open slots are shown
+        </div>
+      ) : null}
+
+      {selectedCoach ? (
+        <div className="fixed inset-x-3 bottom-3 z-40 rounded-[1.5rem] border border-aurora/25 bg-[#10182b]/95 p-4 shadow-glow backdrop-blur md:hidden">
+          <div className="text-center">
+            <div className="text-xs uppercase tracking-[0.24em] text-aurora">
+              Confirm Coach
+            </div>
+            <div className="mt-2 font-display text-2xl uppercase tracking-[0.06em] text-white">
+              {selectedCoach.name}
+            </div>
+            <div className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-300">
+              Bench boost: {calculateCoachRating(selectedCoach).rating}
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              onClick={handleConfirmSelection}
+              className="rounded-full border border-aurora/35 bg-aurora px-4 py-3 text-sm uppercase tracking-[0.18em] text-ink"
+            >
+              Confirm Coach
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelSelection}
+              className="rounded-full border border-white/12 bg-white/[0.05] px-4 py-3 text-sm uppercase tracking-[0.18em] text-slate-200"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       ) : null}

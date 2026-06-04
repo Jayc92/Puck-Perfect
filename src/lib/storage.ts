@@ -47,6 +47,7 @@ const isPersistedGameState = (value: unknown): value is PersistedGameState => {
 
   return (
     hasValidLineup &&
+    (typeof state.coachId === "string" || state.coachId === null) &&
     Array.isArray(state.draftedPlayerIds) &&
     (typeof state.lastPromptKey === "string" || state.lastPromptKey === null) &&
     typeof state.rngState === "number"
