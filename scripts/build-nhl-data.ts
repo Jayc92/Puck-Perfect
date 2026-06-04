@@ -237,7 +237,7 @@ function parseCliArgs(args: string[]): CliOptions {
   });
 
   const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-  const startSeasonId = parseSeasonId(optionMap.get("start-season")) ?? 19601961;
+  const startSeasonId = parseSeasonId(optionMap.get("start-season")) ?? 19701971;
   const endSeasonId = parseSeasonId(optionMap.get("end-season")) ?? getCurrentSeasonId();
   const outputPath = optionMap.get("output")
     ? path.resolve(rootDir, optionMap.get("output")!)

@@ -36,7 +36,7 @@ npm run build:data
 Optional flags:
 
 ```bash
-npm run build:data -- --start-season=19601961 --end-season=20242025 --min-games=100
+npm run build:data -- --start-season=19701971 --end-season=20242025 --min-games=100
 ```
 
 More precise cutoff flags are also supported:
@@ -104,11 +104,11 @@ The importer at [`scripts/build-nhl-data.ts`](/Users/joseph.carfagno/Documents/8
 Notes on the generated import:
 
 - It targets regular-season data only.
-- It supports historical pulls back to `1960-61`.
+- It currently supports historical pulls from `1970-71` forward for the live game pool.
 - It resolves older team rows through NHL tri-codes when stat rows do not include franchise IDs directly.
 - By default it filters out very short careers with separate skater and goalie thresholds:
   skaters need `40` games or `80` career points, and goalies need `30` games or `20` wins.
-- Players are tagged into every decade they played for a franchise. That means a long-tenure player can appear in multiple decade pools for the same club.
+- Players are tagged into every supported decade they played for a franchise. That means a long-tenure player can appear in multiple decade pools for the same club.
 - The current import uses aggregated player stat lines rather than fully decade-sliced card stats, so multi-era players are not yet split into separate per-decade stat profiles.
 
 ## Why `seasonGames` supports 82 and 84

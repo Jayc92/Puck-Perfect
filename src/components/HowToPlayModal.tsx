@@ -128,7 +128,7 @@ export function HowToPlayModal({
           </div>
 
           <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-slate-200">
-            Imported franchise-era pools are built from players who clear the current dataset cutoff. Forward eligibility is loosened with heuristics so left and right wings can swap, and some elite or playmaking centers can slide to the wing. Coaches are rated mostly by career wins, with Stanley Cup success and win percentage adding a moderate boost.
+            Imported franchise-era pools currently run from the 1970s through the 2020s. Forward eligibility is loosened carefully so left and right wings can swap, while only stronger long-career centers can flex to the wing. Coaches are rated mostly by career wins, with Stanley Cup success and win percentage adding a moderate boost.
           </div>
         </div>
 

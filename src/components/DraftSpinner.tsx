@@ -39,7 +39,7 @@ export function DraftSpinner({
     [spinFranchiseNames],
   );
   const fallbackEras = useMemo(
-    () => (spinEras.length ? spinEras : ["1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"]),
+    () => (spinEras.length ? spinEras : ["1970s", "1980s", "1990s", "2000s", "2010s", "2020s"]),
     [spinEras],
   );
 
