@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #e8f5ff;
+  background:
+    radial-gradient(circle at top, rgba(90, 227, 192, 0.1), transparent 30%),
+    linear-gradient(180deg, #040a14 0%, #07111f 50%, #0a1627 100%);
+  font-family: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(90, 227, 192, 0.12), transparent 30%),
+    linear-gradient(180deg, #040a14 0%, #07111f 48%, #0a1627 100%);
+  color: #e8f5ff;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(90, 227, 192, 0.07), transparent 24%),
+    radial-gradient(circle at 80% 18%, rgba(255, 133, 95, 0.08), transparent 22%),
+    linear-gradient(90deg, transparent 0, rgba(159, 232, 255, 0.03) 48%, transparent 52%),
+    linear-gradient(transparent 0, rgba(159, 232, 255, 0.02) 49.5%, transparent 50.5%);
+  background-size: auto, auto, 100% 100%, 100% 10rem;
+  opacity: 0.78;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(159, 232, 255, 0.7);
+  outline-offset: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(124, 149, 181, 0.5);
+  border-radius: 9999px;
+}

@@ -1,0 +1,765 @@
+import { useEffect, useMemo, useState } from "react";
+import { DraftSpinner } from "./components/DraftSpinner";
+import { Header } from "./components/Header";
+import { HowToPlayModal } from "./components/HowToPlayModal";
+import { IntroPanel } from "./components/IntroPanel";
+import { LineupBoard } from "./components/LineupBoard";
+import { PlayerCard } from "./components/PlayerCard";
+import { PrivacyPolicyModal } from "./components/PrivacyPolicyModal";
+import { ResultPanel } from "./components/ResultPanel";
+import { SeasonLengthToggle } from "./components/SeasonLengthToggle";
+import { SiteFooter } from "./components/SiteFooter";
+import {
+  getFallbackPlayerDataset,
+  loadPlayerDataset,
+  type PlayerDataset,
+} from "./data/playerDataset";
+import { assignPlayerToSlot, buildDraftPrompt, createInitialLineup, getAutoAssignSlot, getPromptKey, isLineupComplete, parseShareCode } from "./lib/draft";
+import { CURRENT_GAME_STATE_VERSION, EMPTY_LINEUP, LINEUP_SLOTS } from "./lib/constants";
+import { calculatePlayerRating } from "./lib/scoring";
+import { clearSavedGame, loadSavedGame, loadTutorialHidden, saveGame, saveTutorialHidden } from "./lib/storage";
+import { simulateSeason } from "./lib/simulation";
+import { getEligibleLineupSlots, getPlayerById, hashString } from "./lib/utils";
+import type { DraftPrompt, GameStatus, LineupAssignment, PersistedGameState, Player, PlayerPosition, SeasonResult } from "./types";
+
+type PlayerPoolFilter = "ALL" | "F" | "D" | "G" | "OPEN";
+type PlayerPoolSort = "bestFit" | "points" | "goals" | "assists" | "name";
+const DEFAULT_VISIBLE_POOL_COUNT = 24;
+
+function App() {
+  const [dataset, setDataset] = useState<PlayerDataset | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [status, setStatus] = useState<GameStatus>("intro");
+  const [lineup, setLineup] = useState<LineupAssignment>({ ...EMPTY_LINEUP });
+  const [draftedPlayerIds, setDraftedPlayerIds] = useState<string[]>([]);
+  const [currentPrompt, setCurrentPrompt] = useState<DraftPrompt | null>(null);
+  const [lastPromptKey, setLastPromptKey] = useState<string | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [seasonGames, setSeasonGames] = useState<82 | 84>(82);
+  const [rngState, setRngState] = useState<number>(hashString("puck-perfect-default"));
+  const [result, setResult] = useState<SeasonResult | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [hideTutorialInFuture, setHideTutorialInFuture] = useState(false);
+  const [playerSearch, setPlayerSearch] = useState("");
+  const [playerFilter, setPlayerFilter] = useState<PlayerPoolFilter>("ALL");
+  const [playerSort, setPlayerSort] = useState<PlayerPoolSort>("bestFit");
+  const [visiblePoolCount, setVisiblePoolCount] = useState(DEFAULT_VISIBLE_POOL_COUNT);
+
+  useEffect(() => {
+    let active = true;
+
+    loadPlayerDataset().then((loadedDataset) => {
+      if (!active) {
+        return;
+      }
+      setDataset(loadedDataset);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!dataset) {
+      return;
+    }
+
+    const hidden = loadTutorialHidden();
+    setHideTutorialInFuture(hidden);
+    setShowTutorial(!hidden);
+
+    const sharedHash = window.location.hash.replace(/^#/, "");
+    if (sharedHash) {
+      const sharedState =
+        parseShareCode(sharedHash) ??
+        parseShareCode(decodeURIComponent(sharedHash));
+      if (sharedState) {
+        const sharedResult = simulateSeason(sharedState.lineup, dataset.players, sharedState.seasonGames);
+        const sharedDraftedIds = LINEUP_SLOTS.map((slot) => sharedState.lineup[slot]).filter(
+          (playerId): playerId is string => Boolean(playerId),
+        );
+        setLineup(sharedState.lineup);
+        setDraftedPlayerIds(sharedDraftedIds);
+        setSeasonGames(sharedState.seasonGames);
+        setResult(sharedResult);
+        setStatus("results");
+        setIsHydrated(true);
+        return;
+      }
+    }
+
+    const savedGame = loadSavedGame();
+    if (!savedGame) {
+      setIsHydrated(true);
+      return;
+    }
+
+    setStatus(savedGame.status);
+    setLineup(savedGame.lineup);
+    setDraftedPlayerIds(savedGame.draftedPlayerIds);
+    setCurrentPrompt(savedGame.currentPrompt);
+    setLastPromptKey(savedGame.lastPromptKey);
+    setSelectedPlayerId(savedGame.selectedPlayerId);
+    setSeasonGames(savedGame.seasonGames);
+    setRngState(savedGame.rngState);
+    setResult(savedGame.result);
+    setIsHydrated(true);
+  }, [dataset]);
+
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+
+    const stateToSave: PersistedGameState = {
+      version: CURRENT_GAME_STATE_VERSION,
+      status,
+      lineup,
+      draftedPlayerIds,
+      currentPrompt,
+      lastPromptKey,
+      selectedPlayerId,
+      seasonGames,
+      rngState,
+      result,
+    };
+
+    saveGame(stateToSave);
+  }, [status, lineup, draftedPlayerIds, currentPrompt, lastPromptKey, selectedPlayerId, seasonGames, rngState, result]);
+
+  useEffect(() => {
+    if (result) {
+      window.location.hash = result.shareCode;
+    } else if (window.location.hash) {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, [result]);
+
+  useEffect(() => {
+    if (status !== "spinning") {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      if (!dataset) {
+        return;
+      }
+      const promptResult = buildDraftPrompt(
+        dataset.players,
+        dataset.franchises,
+        lineup,
+        draftedPlayerIds,
+        rngState,
+        lastPromptKey,
+      );
+      setRngState(promptResult.rngState);
+      setCurrentPrompt(promptResult.prompt);
+      setLastPromptKey(getPromptKey(promptResult.prompt));
+      setStatus(promptResult.prompt ? "choosingPlayer" : "ready");
+    }, 1300);
+
+    return () => window.clearTimeout(timeout);
+  }, [status, lineup, draftedPlayerIds, rngState, dataset, lastPromptKey]);
+
+  useEffect(() => {
+    if (status !== "complete") {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      if (!dataset) {
+        return;
+      }
+      const nextResult = simulateSeason(lineup, dataset.players, seasonGames);
+      setResult(nextResult);
+      setStatus("results");
+    }, 650);
+
+    return () => window.clearTimeout(timeout);
+  }, [status, lineup, seasonGames, dataset]);
+  const fallbackDataset = getFallbackPlayerDataset();
+  const activePlayers = dataset?.players ?? fallbackDataset.players;
+  const activeDataset = dataset ?? fallbackDataset;
+
+  const selectedPlayer = useMemo(
+    () => getPlayerById(activePlayers, selectedPlayerId),
+    [activePlayers, selectedPlayerId],
+  );
+
+  const promptPlayers = useMemo(
+    () =>
+      currentPrompt?.playerIds
+        .map((playerId) => getPlayerById(activePlayers, playerId))
+        .filter((player): player is NonNullable<typeof player> => Boolean(player)) ?? [],
+    [currentPrompt, activePlayers],
+  );
+
+  const playerRatings = useMemo(() => {
+    const ratings: Partial<Record<keyof LineupAssignment, number>> = {};
+    if (!dataset) {
+      return ratings;
+    }
+    LINEUP_SLOTS.forEach((slot) => {
+      const player = getPlayerById(activePlayers, lineup[slot]);
+      if (!player) {
+        return;
+      }
+      ratings[slot] = calculatePlayerRating(player, slot).rating;
+    });
+    return ratings;
+  }, [lineup, dataset, activePlayers]);
+
+  const shareUrl = useMemo(() => {
+    const location = window.location;
+    return `${location.origin}${location.pathname}#${result?.shareCode ?? ""}`;
+  }, [result]);
+
+  const selectedPlayerAutoSlot = selectedPlayer
+    ? getAutoAssignSlot(selectedPlayer, lineup)
+    : null;
+  const hasCompleteLineup = isLineupComplete(lineup);
+  const openSlotPositions = useMemo(
+    () =>
+      new Set(
+        LINEUP_SLOTS.filter((slot) => !lineup[slot]).map(
+          (slot) => (slot.startsWith("D") ? "D" : slot) as PlayerPosition,
+        ),
+      ),
+    [lineup],
+  );
+
+  const filteredPoolPlayers = useMemo(() => {
+    const query = playerSearch.trim().toLowerCase();
+    const basePlayers = promptPlayers.filter((player) => {
+      const matchesQuery =
+        !query ||
+        [
+          player.name,
+          player.roleTag,
+          ...player.teams.map((team) => team.teamName),
+        ].some((value) => value.toLowerCase().includes(query));
+
+      const matchesFilter = (() => {
+        switch (playerFilter) {
+          case "F":
+            return player.primaryPosition !== "D" && player.primaryPosition !== "G";
+          case "D":
+            return player.primaryPosition === "D";
+          case "G":
+            return player.primaryPosition === "G";
+          case "OPEN":
+            return player.eligiblePositions.some((position) => openSlotPositions.has(position));
+          default:
+            return true;
+        }
+      })();
+
+      return matchesQuery && matchesFilter;
+    });
+
+    const getPreviewOverall = (player: Player) => {
+      const previewSlot = getEligibleLineupSlots(player, lineup)[0];
+      return previewSlot
+        ? calculatePlayerRating(player, previewSlot).rating
+        : calculatePlayerRating(
+            player,
+            player.primaryPosition === "D"
+              ? "D1"
+              : (player.primaryPosition as "LW" | "C" | "RW" | "G"),
+          ).rating;
+    };
+
+    return [...basePlayers].sort((left, right) => {
+      switch (playerSort) {
+        case "name":
+          return left.name.localeCompare(right.name);
+        case "goals":
+          return (right.stats.goals ?? 0) - (left.stats.goals ?? 0);
+        case "assists":
+          return (right.stats.assists ?? 0) - (left.stats.assists ?? 0);
+        case "points":
+          return (
+            (right.stats.points ?? right.stats.goalieWins ?? 0) -
+            (left.stats.points ?? left.stats.goalieWins ?? 0)
+          );
+        case "bestFit":
+        default:
+          return getPreviewOverall(right) - getPreviewOverall(left);
+      }
+    });
+  }, [playerSearch, playerFilter, playerSort, promptPlayers, openSlotPositions, lineup]);
+
+  useEffect(() => {
+    setVisiblePoolCount(DEFAULT_VISIBLE_POOL_COUNT);
+  }, [currentPrompt, playerSearch, playerFilter, playerSort]);
+
+  const visiblePoolPlayers = useMemo(
+    () => filteredPoolPlayers.slice(0, visiblePoolCount),
+    [filteredPoolPlayers, visiblePoolCount],
+  );
+
+  const openSlotSummary = useMemo(
+    () => LINEUP_SLOTS.filter((slot) => !lineup[slot]).join(" • "),
+    [lineup],
+  );
+
+  const beginSpin = () => {
+    if (
+      currentPrompt ||
+      status === "assigningSlot" ||
+      status === "spinning" ||
+      status === "complete" ||
+      hasCompleteLineup
+    ) {
+      return;
+    }
+    setCurrentPrompt(null);
+    setSelectedPlayerId(null);
+    setPlayerSearch("");
+    setPlayerFilter("ALL");
+    setPlayerSort("bestFit");
+    setStatus("spinning");
+  };
+
+  const handleStartDraft = () => {
+    if (status === "intro") {
+      setStatus("ready");
+    }
+    beginSpin();
+  };
+
+  const handleStartWithSeason = (games?: 82 | 84) => {
+    if (games) {
+      setSeasonGames(games);
+    }
+    handleStartDraft();
+  };
+
+  const handleSelectPlayer = (playerId: string) => {
+    setSelectedPlayerId(playerId);
+    setStatus("assigningSlot");
+  };
+
+  const handleCancelSelection = () => {
+    setSelectedPlayerId(null);
+    setStatus(currentPrompt ? "choosingPlayer" : "ready");
+  };
+
+  const handleConfirmSelection = () => {
+    if (!selectedPlayerId || !selectedPlayerAutoSlot) {
+      return;
+    }
+
+    const nextLineup = assignPlayerToSlot(lineup, selectedPlayerAutoSlot, selectedPlayerId);
+    const nextDrafted = [...draftedPlayerIds, selectedPlayerId];
+
+    setLineup(nextLineup);
+    setDraftedPlayerIds(nextDrafted);
+    setSelectedPlayerId(null);
+    setCurrentPrompt(null);
+    setResult(null);
+
+    if (isLineupComplete(nextLineup)) {
+      setStatus("complete");
+    } else {
+      setStatus("ready");
+    }
+  };
+
+  const handleSeasonToggle = (value: 82 | 84) => {
+    setSeasonGames(value);
+    if (result && isLineupComplete(lineup) && dataset) {
+      setResult(simulateSeason(lineup, dataset.players, value));
+      setStatus("results");
+    }
+  };
+
+  const handleNewDraft = () => {
+    const freshSeed = hashString(`${Date.now()}`);
+    setStatus("intro");
+    setLineup(createInitialLineup());
+    setDraftedPlayerIds([]);
+    setCurrentPrompt(null);
+    setLastPromptKey(null);
+    setSelectedPlayerId(null);
+    setPlayerSearch("");
+    setPlayerFilter("ALL");
+    setPlayerSort("bestFit");
+    setRngState(freshSeed);
+    setResult(null);
+    clearSavedGame();
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  };
+
+  const closeTutorial = () => {
+    setShowTutorial(false);
+    saveTutorialHidden(hideTutorialInFuture);
+  };
+
+  if (!dataset) {
+    return (
+      <div className="mx-auto min-h-screen max-w-7xl px-4 py-6 font-body sm:px-6 lg:px-8">
+        <div className="space-y-6">
+          <Header
+            seasonGames={seasonGames}
+            isSampleDataset={activeDataset.isSample}
+            status={status}
+            draftedCount={draftedPlayerIds.length}
+          />
+          <section className="rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-glow">
+            <p className="text-xs uppercase tracking-[0.3em] text-ice/70">Loading Player Pool</p>
+            <h2 className="mt-3 font-display text-3xl uppercase tracking-[0.12em] text-white">
+              Warming up the historical boards
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-200">
+              Puck Perfect is loading the best available NHL dataset for this build. If no generated import is present, it will fall back to the bundled sample roster automatically.
+            </p>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`mx-auto min-h-screen max-w-7xl px-4 py-6 font-body sm:px-6 lg:px-8 ${selectedPlayer ? "pb-32 md:pb-6" : ""}`}>
+      <HowToPlayModal
+        isOpen={showTutorial}
+        onClose={closeTutorial}
+        hideInFuture={hideTutorialInFuture}
+        onPreferenceChange={(value) => {
+          setHideTutorialInFuture(value);
+          saveTutorialHidden(value);
+        }}
+      />
+      <PrivacyPolicyModal
+        isOpen={showPrivacyPolicy}
+        onClose={() => setShowPrivacyPolicy(false)}
+      />
+
+      <div className="space-y-6">
+        <Header
+          seasonGames={seasonGames}
+          isSampleDataset={activeDataset.isSample}
+          status={status}
+          draftedCount={draftedPlayerIds.length}
+        />
+
+        <div className="flex flex-col gap-3 rounded-[1.75rem] border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <SeasonLengthToggle value={seasonGames} onChange={handleSeasonToggle} />
+          <div className="flex flex-wrap gap-3">
+            {status === "intro" || status === "results" ? (
+              <button
+                type="button"
+                onClick={handleNewDraft}
+                className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-white/20"
+              >
+                New Draft
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setShowTutorial(true)}
+              className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-white/20"
+            >
+              How To Play
+            </button>
+          </div>
+        </div>
+
+        {status === "intro" ? (
+          <IntroPanel
+            seasonGames={seasonGames}
+            onStart={handleStartWithSeason}
+            onOpenHowToPlay={() => setShowTutorial(true)}
+          />
+        ) : null}
+
+        {status !== "intro" && status !== "results" ? (
+          <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
+          <div className="order-2 space-y-6 xl:order-1">
+              <DraftSpinner
+                status={status}
+                prompt={currentPrompt}
+                onSpin={beginSpin}
+                canSpin={!hasCompleteLineup && !currentPrompt && status === "ready"}
+                spinFranchiseNames={[
+                  ...new Set(activeDataset.franchises.map((franchise) => franchise.displayName)),
+                ]}
+                spinEras={[
+                  ...new Set(
+                    activePlayers.flatMap((player) =>
+                      player.teams.flatMap((team) => team.decadeTags),
+                    ),
+                  ),
+                ]}
+              />
+
+              <section className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-glow">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-ice/70">Player Board</p>
+                    <h2 className="mt-2 font-display text-2xl uppercase tracking-[0.12em] text-white">
+                      {status === "assigningSlot"
+                        ? "Confirm your pick"
+                        : currentPrompt
+                          ? "Eligible players"
+                          : "Spin to reveal candidates"}
+                    </h2>
+                  </div>
+                  {activeDataset.isSample ? (
+                    <div className="rounded-full border border-ember/20 bg-ember/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-ember">
+                      Sample dataset
+                    </div>
+                  ) : null}
+                </div>
+
+                {promptPlayers.length ? (
+                  <div className="mt-5 space-y-4">
+                    {selectedPlayer && selectedPlayerAutoSlot ? (
+                      <div className="rounded-[1.4rem] border border-ember/25 bg-ember/10 p-4">
+                        <div className="text-xs uppercase tracking-[0.24em] text-ember">
+                          Confirm selection
+                        </div>
+                        <div className="mt-2 font-display text-2xl uppercase tracking-[0.08em] text-white">
+                          {selectedPlayer.name}
+                        </div>
+                        <div className="mt-2 text-sm text-slate-200">
+                          This pick will auto-lock into <span className="font-semibold text-white">{selectedPlayerAutoSlot}</span>.
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={handleConfirmSelection}
+                            className="rounded-full border border-ember/40 bg-ember px-4 py-3 text-sm uppercase tracking-[0.18em] text-ink transition hover:brightness-110"
+                          >
+                            Confirm Selection
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelSelection}
+                            className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-3 text-sm uppercase tracking-[0.18em] text-slate-200 transition hover:bg-white/[0.1]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <div className="text-xs uppercase tracking-[0.26em] text-slate-400">
+                          Eligible for your open slots
+                        </div>
+                        <div className="text-xs uppercase tracking-[0.24em] text-slate-500">
+                          Showing {Math.min(visiblePoolPlayers.length, filteredPoolPlayers.length)} of {filteredPoolPlayers.length}
+                          {filteredPoolPlayers.length !== promptPlayers.length ? ` filtered from ${promptPlayers.length}` : ""}
+                        </div>
+                      </div>
+
+                      <div className="mb-3 flex flex-wrap items-center gap-3 text-[0.68rem] uppercase tracking-[0.22em] text-slate-400">
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
+                          Open slots: {openSlotSummary}
+                        </span>
+                        <span className="rounded-full border border-ice/20 bg-ice/10 px-3 py-2 text-ice">
+                          Only players who fit those open slots are shown
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-3 xl:flex-row">
+                        <input
+                          type="search"
+                          value={playerSearch}
+                          onChange={(event) => setPlayerSearch(event.target.value)}
+                          placeholder="Search players or teams"
+                          aria-label="Search current player pool"
+                          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#121b2f] px-4 py-3 text-sm text-white placeholder:text-slate-500"
+                        />
+
+                        <div className="flex flex-wrap gap-2">
+                          {([
+                            ["ALL", "All"],
+                            ["F", "Forwards"],
+                            ["D", "Defense"],
+                            ["G", "Goalies"],
+                            ["OPEN", "Fits Open"],
+                          ] as const).map(([value, label]) => {
+                            const active = playerFilter === value;
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => setPlayerFilter(value)}
+                                className={`rounded-full px-4 py-3 text-xs uppercase tracking-[0.2em] transition ${
+                                  active
+                                    ? "bg-ember text-ink"
+                                    : "border border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/[0.09]"
+                                }`}
+                              >
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <select
+                          value={playerSort}
+                          onChange={(event) => setPlayerSort(event.target.value as PlayerPoolSort)}
+                          aria-label="Sort player pool"
+                          className="rounded-xl border border-white/10 bg-[#121b2f] px-4 py-3 text-sm text-white"
+                        >
+                          <option value="bestFit">Sort: Best Fit</option>
+                          <option value="points">Sort: Points</option>
+                          <option value="goals">Sort: Goals</option>
+                          <option value="assists">Sort: Assists</option>
+                          <option value="name">Sort: Name</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {visiblePoolPlayers.map((player) => {
+                        const previewSlot = getEligibleLineupSlots(player, lineup)[0];
+                        const overall = previewSlot
+                          ? calculatePlayerRating(player, previewSlot).rating
+                          : calculatePlayerRating(player, player.primaryPosition === "D" ? "D1" : player.primaryPosition as "LW" | "C" | "RW" | "G").rating;
+                        return (
+                          <PlayerCard
+                            key={player.id}
+                            player={player}
+                            overall={overall}
+                            franchiseId={currentPrompt?.franchiseId}
+                            selected={selectedPlayerId === player.id}
+                            muted={Boolean(selectedPlayerId && selectedPlayerId !== player.id)}
+                            actionLabel={
+                              selectedPlayerId === player.id ? "Confirm Selection" : "Draft Player"
+                            }
+                            onAction={() =>
+                              selectedPlayerId === player.id
+                                ? handleConfirmSelection()
+                                : handleSelectPlayer(player.id)
+                            }
+                            layout="row"
+                          />
+                        );
+                      })}
+                    </div>
+
+                    {filteredPoolPlayers.length > visiblePoolPlayers.length ? (
+                      <div className="flex flex-wrap items-center justify-center gap-3 rounded-[1.4rem] border border-white/10 bg-slate-950/30 px-4 py-4">
+                        <div className="text-xs uppercase tracking-[0.22em] text-slate-400">
+                          Deep pool detected
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setVisiblePoolCount((count) =>
+                              Math.min(count + DEFAULT_VISIBLE_POOL_COUNT, filteredPoolPlayers.length),
+                            )
+                          }
+                          className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs uppercase tracking-[0.2em] text-white transition hover:bg-white/[0.12]"
+                        >
+                          Show 24 More
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setVisiblePoolCount(filteredPoolPlayers.length)}
+                          className="rounded-full border border-ice/20 bg-ice/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-ice transition hover:bg-ice hover:text-ink"
+                        >
+                          Show All {filteredPoolPlayers.length}
+                        </button>
+                      </div>
+                    ) : filteredPoolPlayers.length > DEFAULT_VISIBLE_POOL_COUNT ? (
+                      <div className="flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => setVisiblePoolCount(DEFAULT_VISIBLE_POOL_COUNT)}
+                          className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-300 transition hover:bg-white/[0.1]"
+                        >
+                          Show Fewer
+                        </button>
+                      </div>
+                    ) : null}
+
+                    {!filteredPoolPlayers.length ? (
+                      <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-slate-950/30 px-5 py-6 text-center text-sm text-slate-300">
+                        No players matched the current search and filter settings.
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="mt-5 rounded-[1.5rem] border border-dashed border-white/10 bg-slate-950/40 p-6 text-sm leading-6 text-slate-300">
+                    {status === "complete"
+                      ? "Lineup locked. Running the season simulation now."
+                      : "No active player pool yet. Spin the board to pull in a valid franchise-era group."}
+                  </div>
+                )}
+              </section>
+          </div>
+
+          <div className="order-1 xl:order-2">
+            <LineupBoard
+              lineup={lineup}
+              players={activePlayers}
+              selectedPlayer={selectedPlayer}
+              pendingSlot={selectedPlayerAutoSlot}
+              playerRatings={playerRatings}
+            />
+          </div>
+          </div>
+        ) : null}
+
+        {status === "results" && result ? (
+          <ResultPanel
+            result={result}
+            lineup={lineup}
+            players={activePlayers}
+            shareUrl={shareUrl}
+            onNewDraft={handleNewDraft}
+          />
+        ) : null}
+      </div>
+
+      <SiteFooter
+        onOpenHowToPlay={() => setShowTutorial(true)}
+        onOpenPrivacyPolicy={() => setShowPrivacyPolicy(true)}
+      />
+
+      {selectedPlayer && selectedPlayerAutoSlot ? (
+        <div className="fixed inset-x-3 bottom-3 z-40 rounded-[1.5rem] border border-ember/25 bg-[#10182b]/95 p-4 shadow-glow backdrop-blur md:hidden">
+          <div className="text-center">
+            <div className="text-xs uppercase tracking-[0.24em] text-ember">Confirm Pick</div>
+            <div className="mt-2 font-display text-2xl uppercase tracking-[0.06em] text-white">
+              {selectedPlayer.name}
+            </div>
+            <div className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-300">
+              Auto-locks into {selectedPlayerAutoSlot}
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              onClick={handleConfirmSelection}
+              className="rounded-full border border-ember/35 bg-ember px-4 py-3 text-sm uppercase tracking-[0.18em] text-ink"
+            >
+              Confirm Selection
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelSelection}
+              className="rounded-full border border-white/12 bg-white/[0.05] px-4 py-3 text-sm uppercase tracking-[0.18em] text-slate-200"
+            >
+              Cancel
+            </button>
+          </div>
+          <div className="mt-3 text-center text-xs uppercase tracking-[0.2em] text-slate-400">
+            Only players who fit your open slots are shown
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export default App;
