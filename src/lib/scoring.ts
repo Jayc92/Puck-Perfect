@@ -56,10 +56,64 @@ const getDefensiveImpact = (player: Player) => {
   const awardBoost = player.awards?.some((award) => award.includes("Selke") || award.includes("Norris")) ? 6 : 0;
 
   if (player.primaryPosition === "D") {
-    return clamp(64 + plusMinusPerGame * 24 + awardBoost, 52, 100);
+    return clamp(68 + plusMinusPerGame * 22 + awardBoost, 56, 100);
   }
 
-  return clamp(56 + plusMinusPerGame * 18 + awardBoost, 45, 96);
+  return clamp(58 + plusMinusPerGame * 16 + awardBoost, 48, 98);
+};
+
+const getGamesTierScore = (games: number) => {
+  if (games >= 1400) return 12;
+  if (games >= 1100) return 10;
+  if (games >= 800) return 8.5;
+  if (games >= 500) return 6.5;
+  if (games >= 300) return 4.5;
+  if (games >= 200) return 3;
+  if (games >= 100) return 1.6;
+  return 0.6;
+};
+
+const getForwardLegacyBonus = (points: number, games: number, pointsPerGame: number) => {
+  let bonus = 0;
+
+  if (points >= 2000) bonus += 10;
+  else if (points >= 1700) bonus += 8;
+  else if (points >= 1500) bonus += 6.5;
+  else if (points >= 1200) bonus += 5;
+  else if (points >= 1000) bonus += 4;
+  else if (points >= 700) bonus += 2.5;
+
+  if (pointsPerGame >= 1.6) bonus += 10;
+  else if (pointsPerGame >= 1.45) bonus += 8;
+  else if (pointsPerGame >= 1.25) bonus += 6;
+  else if (pointsPerGame >= 1.05) bonus += 4;
+  else if (pointsPerGame >= 0.9) bonus += 2;
+
+  if (games >= 1000 && points >= 1000) bonus += 4;
+  if (games >= 900 && points >= 1200 && pointsPerGame >= 1.3) bonus += 4;
+
+  return clamp(bonus, 0, 20);
+};
+
+const getDefenseLegacyBonus = (points: number, games: number, pointsPerGame: number) => {
+  let bonus = 0;
+
+  if (points >= 1500) bonus += 10;
+  else if (points >= 1200) bonus += 8;
+  else if (points >= 1000) bonus += 6;
+  else if (points >= 700) bonus += 4.5;
+  else if (points >= 400) bonus += 3;
+
+  if (pointsPerGame >= 1.15) bonus += 10;
+  else if (pointsPerGame >= 1.0) bonus += 8;
+  else if (pointsPerGame >= 0.85) bonus += 6;
+  else if (pointsPerGame >= 0.7) bonus += 4;
+  else if (pointsPerGame >= 0.55) bonus += 2;
+
+  if (games >= 1000 && points >= 900) bonus += 3.5;
+  if (games >= 400 && pointsPerGame >= 0.9) bonus += 3.5;
+
+  return clamp(bonus, 0, 20);
 };
 
 export const calculateSkaterRating = (
@@ -75,46 +129,51 @@ export const calculateSkaterRating = (
   const eraAdjustment = getEraAdjustment(player);
   const awardsBonus = awardWeight(player.awards);
   const targetPosition = SLOT_POSITION_MAP[assignedSlot];
-
-  const careerScoringBonus = player.primaryPosition === "D"
-    ? logNormalize(player.stats.points ?? 0, 1700)
-    : logNormalize(player.stats.points ?? 0, 2600);
+  const totalPoints = player.stats.points ?? 0;
+  const gamesScore = getGamesTierScore(games);
 
   let offense = 0;
-  let defense = defensiveImpact;
+  let defense = 0;
+  let legacyBonus = 0;
 
   if (targetPosition === "C") {
     offense =
-      linearNormalize(pointsPerGame, 1.9) * 28 +
-      linearNormalize(assistsPerGame, 1.35) * 20 +
-      linearNormalize(goalsPerGame, 0.75) * 12 +
-      linearNormalize(shotsPerGame, 4.6) * 6 +
-      careerScoringBonus * 10;
-    defense += 6;
+      linearNormalize(pointsPerGame, 1.95) * 34 +
+      logNormalize(totalPoints, 2900) * 26 +
+      linearNormalize(assistsPerGame, 1.35) * 8 +
+      linearNormalize(goalsPerGame, 0.75) * 6 +
+      linearNormalize(shotsPerGame, 4.6) * 4 +
+      gamesScore;
+    legacyBonus = getForwardLegacyBonus(totalPoints, games, pointsPerGame);
+    defense = defensiveImpact * 0.18 + 4;
   } else if (targetPosition === "LW" || targetPosition === "RW") {
     offense =
-      linearNormalize(pointsPerGame, 1.75) * 28 +
-      linearNormalize(goalsPerGame, 0.72) * 18 +
-      linearNormalize(assistsPerGame, 1.1) * 10 +
-      linearNormalize(shotsPerGame, 5.0) * 6 +
-      careerScoringBonus * 8;
-    defense += 2;
+      linearNormalize(pointsPerGame, 1.8) * 34 +
+      logNormalize(totalPoints, 2600) * 26 +
+      linearNormalize(goalsPerGame, 0.78) * 8 +
+      linearNormalize(assistsPerGame, 1.2) * 8 +
+      linearNormalize(shotsPerGame, 5.0) * 4 +
+      gamesScore;
+    legacyBonus = getForwardLegacyBonus(totalPoints, games, pointsPerGame);
+    defense = defensiveImpact * 0.14 + 2;
   } else {
     offense =
-      linearNormalize(pointsPerGame, 1.3) * 32 +
-      linearNormalize(assistsPerGame, 1.0) * 14 +
-      linearNormalize(goalsPerGame, 0.35) * 7 +
-      linearNormalize(shotsPerGame, 3.5) * 5 +
-      careerScoringBonus * 10;
-    defense += 14;
+      linearNormalize(pointsPerGame, 1.45) * 34 +
+      logNormalize(totalPoints, 1700) * 24 +
+      linearNormalize(assistsPerGame, 1.05) * 10 +
+      linearNormalize(goalsPerGame, 0.4) * 6 +
+      linearNormalize(shotsPerGame, 3.6) * 4 +
+      gamesScore;
+    legacyBonus = getDefenseLegacyBonus(totalPoints, games, pointsPerGame);
+    defense = defensiveImpact * 0.28 + 10;
   }
 
-  const rawRating = (offense + defense * 0.26 + awardsBonus) * eraAdjustment;
+  const rawRating = (offense + defense + legacyBonus + awardsBonus) * eraAdjustment;
   const fitPenalty =
     player.primaryPosition === targetPosition
       ? 0
       : player.eligiblePositions.includes(targetPosition)
-        ? 2
+        ? 1.5
         : 14;
 
   const notes: string[] = [];
@@ -127,11 +186,11 @@ export const calculateSkaterRating = (
 
   return {
     playerId: player.id,
-    rating: clamp(round(rawRating - fitPenalty, 1), 44, 100),
+    rating: clamp(round(rawRating - fitPenalty, 1), 48, 100),
     offense: round(offense * eraAdjustment, 1),
     defense: round(defense * eraAdjustment, 1),
     eraAdjustment: round((eraAdjustment - 1) * 100, 1),
-    awardsBonus: round(awardsBonus, 1),
+    awardsBonus: round(awardsBonus + legacyBonus, 1),
     fitPenalty,
     notes,
   };
@@ -147,21 +206,22 @@ export const calculateGoalieRating = (
   const shutouts = player.stats.shutouts ?? 0;
   const eraAdjustment = getEraAdjustment(player);
   const awardsBonus = awardWeight(player.awards);
+  const gamesScore = getGamesTierScore(player.stats.games);
 
-  const winsScore = logNormalize(wins, 700) * 40;
-  const savePctScore = linearNormalize(Math.max(savePct - 0.885, 0), 0.045) * 20;
-  const gaaScore = linearNormalize(Math.max(4.1 - gaa, 0), 2.0) * 10;
-  const shutoutScore = logNormalize(shutouts, 130) * 6;
-  const winRateScore = linearNormalize(wins / Math.max(player.stats.games, 1), 0.72) * 8;
+  const winsScore = logNormalize(wins, 700) * 44;
+  const savePctScore = linearNormalize(Math.max(savePct - 0.885, 0), 0.045) * 18;
+  const gaaScore = linearNormalize(Math.max(4.1 - gaa, 0), 2.0) * 8;
+  const shutoutScore = logNormalize(shutouts, 130) * 5;
+  const winRateScore = linearNormalize(wins / Math.max(player.stats.games, 1), 0.72) * 7;
 
-  const offense = winsScore + winRateScore;
+  const offense = winsScore + winRateScore + gamesScore;
   const defense = savePctScore + gaaScore + shutoutScore;
   const rawRating = (offense + defense + awardsBonus) * eraAdjustment;
   const fitPenalty = assignedSlot === "G" ? 0 : 18;
 
   return {
     playerId: player.id,
-    rating: clamp(round(rawRating - fitPenalty, 1), 50, 100),
+    rating: clamp(round(rawRating - fitPenalty, 1), 52, 100),
     offense: round(offense * eraAdjustment, 1),
     defense: round(defense * eraAdjustment, 1),
     eraAdjustment: round((eraAdjustment - 1) * 100, 1),
@@ -241,8 +301,8 @@ export const calculateTeamRating = (
   );
   const chemistry = round(
     clamp(
-      fitScore * 0.34 +
-        balanceScore * 0.3 +
+      fitScore * 0.32 +
+        balanceScore * 0.34 +
         coachUnit * 0.18 +
         (forwardUnit > 90 ? 8 : 0) +
         (defenseUnit > 88 ? 6 : 0) +

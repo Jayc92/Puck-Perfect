@@ -21,7 +21,7 @@ export function HowToPlayModal({
   const steps = useMemo(
     () => [
       "Spin for a franchise and decade, then pick one of the eligible legends shown.",
-      "Confirm that player and the game auto-locks them into the natural open slot they can actually play.",
+      "Click a player, then place them into one of the highlighted open slots they can actually play.",
       "Fill LW, C, RW, D1, D2, and G, then draft a head coach to unlock the season sim and see if you hit 82-0 or 84-0.",
     ],
     [],

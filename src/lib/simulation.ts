@@ -24,20 +24,20 @@ export const winProbabilityFromRatings = (
   coachUnit: number,
 ) => {
   const eliteBonus =
-    teamRating > 96 && goalieUnit > 92
-      ? 2.2
-      : teamRating > 91 && chemistry > 88
-        ? 1.2
+    teamRating > 97 && goalieUnit > 93 && chemistry > 91
+      ? 3.2
+      : teamRating > 93 && chemistry > 88
+        ? 1.8
         : 0;
   const score =
     teamRating -
     opponentRating +
-    (chemistry - 80) * 0.32 +
-    (goalieUnit - 82) * 0.14 +
-    (coachUnit - 78) * 0.12 +
+    (chemistry - 80) * 0.38 +
+    (goalieUnit - 82) * 0.16 +
+    (coachUnit - 78) * 0.14 +
     eliteBonus;
-  const sigmoid = 1 / (1 + Math.exp(-score / 10.8));
-  return clamp(sigmoid, 0.18, 0.972);
+  const sigmoid = 1 / (1 + Math.exp(-score / 9.4));
+  return clamp(sigmoid, 0.2, 0.978);
 };
 
 export const simulateSeason = (
@@ -61,8 +61,8 @@ export const simulateSeason = (
     const third = nextRandom(rngState);
     rngState = third.nextState;
 
-    const opponentRating = 60 + ((first.value + second.value) / 2) * 24;
-    const fatigueModifier = game > seasonGames * 0.75 ? -((1 - (breakdown.chemistry + breakdown.coachUnit * 0.2) / 120) * 1.3) : 0;
+    const opponentRating = 56 + ((first.value + second.value) / 2) * 20;
+    const fatigueModifier = game > seasonGames * 0.78 ? -((1 - (breakdown.chemistry + breakdown.coachUnit * 0.22) / 120) * 0.95) : 0;
     const winProbability = winProbabilityFromRatings(
       breakdown.teamRating + fatigueModifier,
       opponentRating,

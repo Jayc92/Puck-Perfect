@@ -7,22 +7,24 @@ type LineupBoardProps = {
   lineup: LineupAssignment;
   players: Player[];
   selectedPlayer: Player | null;
-  pendingSlot: LineupSlotId | null;
+  pendingSlots: LineupSlotId[];
   playerRatings: Partial<Record<LineupSlotId, number>>;
   coach: Coach | null;
   coachOverall?: number;
   coachPending: boolean;
+  onSlotSelect?: (slot: LineupSlotId) => void;
 };
 
 export function LineupBoard({
   lineup,
   players,
   selectedPlayer,
-  pendingSlot,
+  pendingSlots,
   playerRatings,
   coach,
   coachOverall,
   coachPending,
+  onSlotSelect,
 }: LineupBoardProps) {
   const rinkPositions: Record<LineupSlotId, string> = {
     LW: "left-[18%] top-[27%] -translate-x-1/2 -translate-y-1/2",
@@ -44,7 +46,7 @@ export function LineupBoard({
         </div>
         {selectedPlayer ? (
           <div className="rounded-full border border-aurora/35 bg-aurora/10 px-4 py-2 text-xs uppercase tracking-[0.22em] text-aurora">
-            Ready to confirm {selectedPlayer.name}
+            Place {selectedPlayer.name}
           </div>
         ) : coachPending ? (
           <div className="rounded-full border border-ice/35 bg-ice/10 px-4 py-2 text-xs uppercase tracking-[0.22em] text-ice">
@@ -78,7 +80,7 @@ export function LineupBoard({
 
           {LINEUP_SLOTS.map((slot) => {
             const player = getPlayerById(players, lineup[slot]);
-            const isEligible = pendingSlot === slot;
+            const isEligible = pendingSlots.includes(slot);
 
             return (
               <div key={slot} className={`absolute ${rinkPositions[slot]}`}>
@@ -88,6 +90,7 @@ export function LineupBoard({
                   overall={playerRatings[slot]}
                   isEligible={isEligible}
                   isSelected={Boolean(selectedPlayer && isEligible)}
+                  onClick={isEligible && onSlotSelect ? () => onSlotSelect(slot) : undefined}
                   compact
                 />
               </div>
@@ -99,7 +102,7 @@ export function LineupBoard({
       <div className="mt-4">
         {selectedPlayer ? (
           <div className="rounded-[1.2rem] border border-ember/25 bg-ember/12 px-4 py-4 text-center text-sm uppercase tracking-[0.18em] text-ember">
-            Confirm {selectedPlayer.name} to lock them into the highlighted slot
+            Tap one of the highlighted slots to place {selectedPlayer.name}
           </div>
         ) : coachPending ? (
           <div className="rounded-[1.2rem] border border-ice/20 bg-ice/10 px-4 py-4 text-center text-sm uppercase tracking-[0.18em] text-ice">

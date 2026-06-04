@@ -19,9 +19,7 @@ import {
   assignPlayerToSlot,
   buildDraftPrompt,
   createInitialLineup,
-  getAutoAssignSlot,
   getPromptKey,
-  isLineupComplete,
   isRosterComplete,
   parseShareCode,
 } from "./lib/draft";
@@ -324,10 +322,10 @@ function App() {
     return `${location.origin}${location.pathname}#${result?.shareCode ?? ""}`;
   }, [result]);
 
-  const selectedPlayerAutoSlot =
+  const selectedPlayerEligibleSlots =
     currentPrompt?.kind === "player" && selectedPlayer
-      ? getAutoAssignSlot(selectedPlayer, lineup)
-      : null;
+      ? getEligibleLineupSlots(selectedPlayer, lineup)
+      : [];
   const hasCompleteRoster = isRosterComplete(lineup, coachId);
 
   const openSlotPositions = useMemo(
@@ -457,8 +455,14 @@ function App() {
   };
 
   const handleSelectCandidate = (candidateId: string) => {
-    setSelectedPlayerId(candidateId);
-    setStatus("assigningSlot");
+    setSelectedPlayerId((currentSelectedId) => {
+      const nextSelectedId =
+        currentPrompt?.kind === "player" && currentSelectedId === candidateId
+          ? null
+          : candidateId;
+      setStatus(nextSelectedId ? "assigningSlot" : currentPrompt ? "choosingPlayer" : "ready");
+      return nextSelectedId;
+    });
   };
 
   const handleCancelSelection = () => {
@@ -479,14 +483,20 @@ function App() {
       setStatus("complete");
       return;
     }
+  };
 
-    if (!selectedPlayerAutoSlot) {
+  const handleAssignSelectedPlayerToSlot = (slot: keyof LineupAssignment) => {
+    if (!selectedPlayerId || !selectedPlayer) {
+      return;
+    }
+
+    if (!selectedPlayerEligibleSlots.includes(slot)) {
       return;
     }
 
     const nextLineup = assignPlayerToSlot(
       lineup,
-      selectedPlayerAutoSlot,
+      slot,
       selectedPlayerId,
     );
     const nextDrafted = [...draftedPlayerIds, selectedPlayerId];
@@ -497,11 +507,7 @@ function App() {
     setCurrentPrompt(null);
     setResult(null);
 
-    if (isLineupComplete(nextLineup)) {
-      setStatus("ready");
-    } else {
-      setStatus("ready");
-    }
+    setStatus("ready");
   };
 
   const handleSeasonToggle = (value: 82 | 84) => {
@@ -572,7 +578,7 @@ function App() {
   return (
     <div
       className={`mx-auto min-h-screen max-w-7xl px-4 py-6 font-body sm:px-6 lg:px-8 ${
-        selectedPlayer || selectedCoach ? "pb-32 md:pb-6" : ""
+        selectedPlayer || selectedCoach ? "pb-36 md:pb-6" : ""
       }`}
     >
       <HowToPlayModal
@@ -659,7 +665,7 @@ function App() {
                       {status === "assigningSlot"
                         ? currentPrompt?.kind === "coach"
                           ? "Confirm your coach"
-                          : "Confirm your pick"
+                          : "Choose a lineup slot"
                         : currentPrompt?.kind === "coach"
                           ? "Eligible coaches"
                           : currentPrompt
@@ -676,29 +682,21 @@ function App() {
 
                 {promptPlayers.length ? (
                   <div className="mt-5 space-y-4">
-                    {selectedPlayer && selectedPlayerAutoSlot ? (
+                    {selectedPlayer ? (
                       <div className="rounded-[1.4rem] border border-ember/25 bg-ember/10 p-4">
                         <div className="text-xs uppercase tracking-[0.24em] text-ember">
-                          Confirm selection
+                          Position selection
                         </div>
                         <div className="mt-2 font-display text-2xl uppercase tracking-[0.08em] text-white">
                           {selectedPlayer.name}
                         </div>
                         <div className="mt-2 text-sm text-slate-200">
-                          This pick will auto-lock into{" "}
-                          <span className="font-semibold text-white">
-                            {selectedPlayerAutoSlot}
-                          </span>
-                          .
+                          Tap one of the highlighted open slots on the rink to place this player. Natural fits still score best.
+                        </div>
+                        <div className="mt-3 text-xs uppercase tracking-[0.22em] text-slate-300">
+                          Eligible slots: {selectedPlayerEligibleSlots.join(" • ")}
                         </div>
                         <div className="mt-4 flex flex-wrap gap-3">
-                          <button
-                            type="button"
-                            onClick={handleConfirmSelection}
-                            className="rounded-full border border-ember/40 bg-ember px-4 py-3 text-sm uppercase tracking-[0.18em] text-ink transition hover:brightness-110"
-                          >
-                            Confirm Selection
-                          </button>
                           <button
                             type="button"
                             onClick={handleCancelSelection}
@@ -812,12 +810,12 @@ function App() {
                             muted={Boolean(selectedPlayerId && selectedPlayerId !== player.id)}
                             actionLabel={
                               selectedPlayerId === player.id
-                                ? "Confirm Selection"
-                                : "Draft Player"
+                                ? "Clear Selection"
+                                : "Choose Player"
                             }
                             onAction={() =>
                               selectedPlayerId === player.id
-                                ? handleConfirmSelection()
+                                ? handleCancelSelection()
                                 : handleSelectCandidate(player.id)
                             }
                             layout="row"
@@ -950,11 +948,12 @@ function App() {
                 lineup={lineup}
                 players={activePlayers}
                 selectedPlayer={selectedPlayer}
-                pendingSlot={selectedPlayerAutoSlot}
+                pendingSlots={selectedPlayerEligibleSlots}
                 playerRatings={playerRatings}
                 coach={getCoachById(activeCoaches, coachId)}
                 coachOverall={coachOverall}
                 coachPending={Boolean(currentPrompt?.kind === "coach")}
+                onSlotSelect={handleAssignSelectedPlayerToSlot}
               />
             </div>
           </div>
@@ -978,27 +977,20 @@ function App() {
         onOpenPrivacyPolicy={() => setShowPrivacyPolicy(true)}
       />
 
-      {selectedPlayer && selectedPlayerAutoSlot ? (
+      {selectedPlayer ? (
         <div className="fixed inset-x-3 bottom-3 z-40 rounded-[1.5rem] border border-ember/25 bg-[#10182b]/95 p-4 shadow-glow backdrop-blur md:hidden">
           <div className="text-center">
             <div className="text-xs uppercase tracking-[0.24em] text-ember">
-              Confirm Pick
+              Choose Position
             </div>
             <div className="mt-2 font-display text-2xl uppercase tracking-[0.06em] text-white">
               {selectedPlayer.name}
             </div>
             <div className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-300">
-              Auto-locks into {selectedPlayerAutoSlot}
+              Tap a highlighted slot on the rink: {selectedPlayerEligibleSlots.join(" • ")}
             </div>
           </div>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <button
-              type="button"
-              onClick={handleConfirmSelection}
-              className="rounded-full border border-ember/35 bg-ember px-4 py-3 text-sm uppercase tracking-[0.18em] text-ink"
-            >
-              Confirm Selection
-            </button>
             <button
               type="button"
               onClick={handleCancelSelection}
