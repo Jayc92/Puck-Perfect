@@ -56,7 +56,7 @@ const getDefensiveImpact = (player: Player) => {
   const awardBoost = player.awards?.some((award) => award.includes("Selke") || award.includes("Norris")) ? 6 : 0;
 
   if (player.primaryPosition === "D") {
-    return clamp(68 + plusMinusPerGame * 22 + awardBoost, 56, 100);
+    return clamp(62 + plusMinusPerGame * 18 + awardBoost, 50, 100);
   }
 
   return clamp(58 + plusMinusPerGame * 16 + awardBoost, 48, 98);
@@ -98,22 +98,22 @@ const getForwardLegacyBonus = (points: number, games: number, pointsPerGame: num
 const getDefenseLegacyBonus = (points: number, games: number, pointsPerGame: number) => {
   let bonus = 0;
 
-  if (points >= 1500) bonus += 10;
-  else if (points >= 1200) bonus += 8;
-  else if (points >= 1000) bonus += 6;
-  else if (points >= 700) bonus += 4.5;
-  else if (points >= 400) bonus += 3;
+  if (points >= 1500) bonus += 9;
+  else if (points >= 1200) bonus += 7;
+  else if (points >= 1000) bonus += 5;
+  else if (points >= 800) bonus += 3;
+  else if (points >= 600) bonus += 1.5;
 
-  if (pointsPerGame >= 1.15) bonus += 10;
-  else if (pointsPerGame >= 1.0) bonus += 8;
-  else if (pointsPerGame >= 0.85) bonus += 6;
-  else if (pointsPerGame >= 0.7) bonus += 4;
-  else if (pointsPerGame >= 0.55) bonus += 2;
+  if (pointsPerGame >= 1.15) bonus += 9;
+  else if (pointsPerGame >= 1.0) bonus += 7;
+  else if (pointsPerGame >= 0.85) bonus += 4.5;
+  else if (pointsPerGame >= 0.72) bonus += 2.5;
+  else if (pointsPerGame >= 0.62) bonus += 1;
 
-  if (games >= 1000 && points >= 900) bonus += 3.5;
-  if (games >= 400 && pointsPerGame >= 0.9) bonus += 3.5;
+  if (games >= 1000 && points >= 900) bonus += 2.5;
+  if (games >= 500 && pointsPerGame >= 0.9) bonus += 2.5;
 
-  return clamp(bonus, 0, 20);
+  return clamp(bonus, 0, 16);
 };
 
 export const calculateSkaterRating = (
@@ -158,14 +158,14 @@ export const calculateSkaterRating = (
     defense = defensiveImpact * 0.14 + 2;
   } else {
     offense =
-      linearNormalize(pointsPerGame, 1.45) * 34 +
-      logNormalize(totalPoints, 1700) * 24 +
-      linearNormalize(assistsPerGame, 1.05) * 10 +
-      linearNormalize(goalsPerGame, 0.4) * 6 +
-      linearNormalize(shotsPerGame, 3.6) * 4 +
-      gamesScore;
+      linearNormalize(pointsPerGame, 1.2) * 26 +
+      linearNormalize(totalPoints, 1600) * 18 +
+      linearNormalize(assistsPerGame, 0.95) * 8 +
+      linearNormalize(goalsPerGame, 0.35) * 5 +
+      linearNormalize(shotsPerGame, 3.4) * 3 +
+      gamesScore * 0.6;
     legacyBonus = getDefenseLegacyBonus(totalPoints, games, pointsPerGame);
-    defense = defensiveImpact * 0.28 + 10;
+    defense = defensiveImpact * 0.32 + 8;
   }
 
   const rawRating = (offense + defense + legacyBonus + awardsBonus) * eraAdjustment;
