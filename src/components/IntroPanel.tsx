@@ -17,7 +17,7 @@ export function IntroPanel({
           Build a perfect season
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-200 sm:text-base">
-          Draft one all-time hockey legend at a time from randomized franchise-era pools, then hire a head coach and see if your roster can survive a full regular season without a single loss.
+          Start by hiring a head coach, then draft one all-time hockey legend at a time from randomized franchise-era pools and see if your roster can survive a full regular season without a single loss.
         </p>
       </div>
 
@@ -46,7 +46,7 @@ export function IntroPanel({
         <div>
           <div className="text-xs uppercase tracking-[0.26em] text-ice/70">Draft Format</div>
           <div className="mt-2 text-sm leading-6 text-slate-200">
-            Seven rounds. No duplicates. Once a franchise-era prompt lands, you must draft from that pool. Wingers can flex across both sides, some centers can slide to wing, and the final round adds a coach bonus before the season sim begins.
+            Seven rounds. No duplicates. The first round locks in a head coach, then the next six spins build out your starting lineup. Once a franchise-era prompt lands, you must draft from that pool. Wingers can flex across both sides, and some centers can slide to wing.
           </div>
         </div>
         <button

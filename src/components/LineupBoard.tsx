@@ -50,7 +50,7 @@ export function LineupBoard({
           </div>
         ) : coachPending ? (
           <div className="rounded-full border border-ice/35 bg-ice/10 px-4 py-2 text-xs uppercase tracking-[0.22em] text-ice">
-            Coach round unlocked
+            Coach round first
           </div>
         ) : null}
       </div>
@@ -106,7 +106,7 @@ export function LineupBoard({
           </div>
         ) : coachPending ? (
           <div className="rounded-[1.2rem] border border-ice/20 bg-ice/10 px-4 py-4 text-center text-sm uppercase tracking-[0.18em] text-ice">
-            Starting six complete. Hire a head coach to unlock the season simulation.
+            Hire your head coach first, then start filling the six on-ice slots.
           </div>
         ) : (
           <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-4 text-center text-sm uppercase tracking-[0.18em] text-slate-300">
@@ -135,8 +135,8 @@ export function LineupBoard({
         ) : (
           <div className="mt-3 text-sm text-slate-300">
             {coachPending
-              ? "Spin one final franchise-era prompt to hire a coach."
-              : "Your coach appears here after the six on-ice slots are filled."}
+              ? "Choose a head coach from the first franchise-era prompt to launch the build."
+              : "Your coach stays locked here while you build out the six on-ice slots."}
           </div>
         )}
       </div>

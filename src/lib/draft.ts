@@ -28,7 +28,7 @@ export const buildDraftPrompt = (
   rngState: number,
   lastPromptKey: string | null = null,
 ): PromptBuildResult => {
-  if (isLineupComplete(lineup) && !coachId) {
+  if (!coachId) {
     const coachPools = getCoachPromptPools(coaches, franchises)
       .map((pool) => ({
         pool,

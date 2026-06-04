@@ -6,8 +6,8 @@ import { buildDraftPrompt, createInitialLineup, parseShareCode } from "../src/li
 import { buildShareCode } from "../src/lib/simulation";
 
 describe("draft prompt generation", () => {
-  it("returns a valid prompt with a draftable player pool", () => {
-    const result = buildDraftPrompt(
+  it("starts the draft with a valid coach pool", () => {
+    const first = buildDraftPrompt(
       samplePlayers,
       sampleCoaches,
       sampleFranchises,
@@ -17,23 +17,53 @@ describe("draft prompt generation", () => {
       123456,
     );
 
-    expect(result.prompt).not.toBeNull();
-    expect(result.prompt?.candidateIds.length).toBeGreaterThanOrEqual(3);
-    expect(new Set(result.prompt?.candidateIds).size).toBe(result.prompt?.candidateIds.length);
+    expect(first.prompt).not.toBeNull();
+    expect(first.prompt?.kind).toBe("coach");
+    expect(first.prompt?.candidateIds.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(first.prompt?.candidateIds).size).toBe(first.prompt?.candidateIds.length);
 
-    const players = result.prompt?.candidateIds.map((playerId) =>
-      samplePlayers.find((player) => player.id === playerId),
+    const coaches = first.prompt?.candidateIds.map((coachId) =>
+      sampleCoaches.find((coach) => coach.id === coachId),
     );
-    expect(players.every(Boolean)).toBe(true);
+    expect(coaches.every(Boolean)).toBe(true);
     expect(
-      players.every((player) =>
-        player?.teams.some(
+      coaches.every((coach) =>
+        coach?.teams.some(
           (team) =>
-            team.franchiseId === result.prompt?.franchiseId &&
-            team.decadeTags.includes(result.prompt?.decadeTag ?? ""),
+            team.franchiseId === first.prompt?.franchiseId &&
+            team.decadeTags.includes(first.prompt?.decadeTag ?? ""),
         ),
       ),
     ).toBe(true);
+  });
+
+  it("switches to a player pool after a coach is selected", () => {
+    const first = buildDraftPrompt(
+      samplePlayers,
+      sampleCoaches,
+      sampleFranchises,
+      createInitialLineup(),
+      null,
+      [],
+      123456,
+    );
+
+    const selectedCoachId = first.prompt?.candidateIds[0] ?? null;
+
+    const second = buildDraftPrompt(
+      samplePlayers,
+      sampleCoaches,
+      sampleFranchises,
+      createInitialLineup(),
+      selectedCoachId,
+      [],
+      first.rngState,
+      `${first.prompt?.franchiseId}:${first.prompt?.decadeTag}`,
+    );
+
+    expect(second.prompt).not.toBeNull();
+    expect(second.prompt?.kind).toBe("player");
+    expect(second.prompt?.candidateIds.length).toBeGreaterThanOrEqual(3);
   });
 
   it("round-trips the share code into season length and lineup", () => {
@@ -74,7 +104,7 @@ describe("draft prompt generation", () => {
       sampleCoaches,
       sampleFranchises,
       createInitialLineup(),
-      null,
+      first.prompt?.candidateIds[0] ?? null,
       [],
       first.rngState,
       `${first.prompt?.franchiseId}:${first.prompt?.decadeTag}`,

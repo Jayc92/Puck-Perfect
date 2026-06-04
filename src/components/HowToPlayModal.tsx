@@ -20,9 +20,9 @@ export function HowToPlayModal({
   const previousFocus = useRef<HTMLElement | null>(null);
   const steps = useMemo(
     () => [
-      "Spin for a franchise and decade, then pick one of the eligible legends shown.",
-      "Click a player, then place them into one of the highlighted open slots they can actually play.",
-      "Fill LW, C, RW, D1, D2, and G, then draft a head coach to unlock the season sim and see if you hit 82-0 or 84-0.",
+      "Spin first for a franchise and decade, then hire one eligible head coach from that revealed pool.",
+      "After your bench boss is locked in, keep spinning for player pools and place each pick into one of the highlighted open slots they can actually play.",
+      "Fill LW, C, RW, D1, D2, and G to trigger the season sim and see if your coach-led build can hit 82-0 or 84-0.",
     ],
     [],
   );

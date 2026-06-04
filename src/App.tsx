@@ -480,7 +480,7 @@ function App() {
       setSelectedPlayerId(null);
       setCurrentPrompt(null);
       setResult(null);
-      setStatus("complete");
+      setStatus(isRosterComplete(lineup, selectedPlayerId) ? "complete" : "ready");
       return;
     }
   };
