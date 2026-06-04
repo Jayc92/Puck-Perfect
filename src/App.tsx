@@ -539,8 +539,7 @@ function App() {
     setSelectedPlayerId(null);
     setCurrentPrompt(null);
     setResult(null);
-
-    setStatus("ready");
+    setStatus(isRosterComplete(nextLineup, coachId) ? "complete" : "ready");
   };
 
   const handleNewDraft = () => {
