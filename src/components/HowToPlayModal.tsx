@@ -22,7 +22,7 @@ export function HowToPlayModal({
     () => [
       "Spin first for a franchise and decade, then hire one eligible head coach from that revealed pool.",
       "After your bench boss is locked in, keep spinning for player pools and place each pick into one of the highlighted open slots they can actually play.",
-      "Fill LW, C, RW, D1, D2, and G to trigger the season sim and see if your coach-led build can hit 82-0 or 84-0.",
+      "Fill LW, C, RW, D1, D2, and G to trigger the season sim and see if your coach-led build can hit 84-0 in open mode or under the salary cap.",
     ],
     [],
   );
@@ -124,11 +124,11 @@ export function HowToPlayModal({
           </div>
 
           <div className="mt-6 rounded-2xl border border-ember/20 bg-ember/10 p-4 text-sm text-slate-100">
-            Ratings are on a 0-100 scale. Skaters now lean heavily on per-game scoring with stronger support for elite defensemen, while goalies prioritize wins first, then save percentage, awards, GAA, and shutouts. Role tags like Sniper and Playmaker are still descriptive only, not hidden chemistry buffs.
+            Ratings are on a 0-100 scale. Skaters now start from decade points bands, then separate further with points per game, games played, a slight goals-over-assists edge, and tiny MVP or Stanley Cup trophy bumps. Role tags like Sniper and Playmaker are still descriptive only, not hidden chemistry buffs.
           </div>
 
           <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-slate-200">
-            Imported franchise-era pools currently run from the 1970s through the 2020s. Forward eligibility is loosened carefully so left and right wings can swap, while only stronger long-career centers can flex to the wing. Coaches are rated mostly by career wins, with Stanley Cup success and win percentage adding a moderate boost.
+            Imported franchise-era pools currently run from the 1970s through the 2020s. Player cards now use decade-specific stat slices, so a player's 1980s version can rate very differently from that same player's 1990s version. Forward eligibility is loosened carefully so left and right wings can swap, while only stronger long-career centers can flex to the wing. In cap mode, player cost is based on decade scoring output and the full roster must stay under $20.
           </div>
         </div>
 

@@ -1,20 +1,22 @@
 import { LINEUP_SLOTS } from "./constants";
 import { calculateTeamRating, explainSeason, getGradeForRating, getStrengthsAndWeaknesses } from "./scoring";
 import { clamp, hashString, nextRandom, round } from "./utils";
-import type { Coach, LineupAssignment, Player, SeasonResult } from "../types";
+import type { Coach, GameMode, LineupAssignment, Player, SeasonResult } from "../types";
 
 export const buildShareCode = (
   lineup: LineupAssignment,
   coachId: string | null,
-  seasonGames: 82 | 84,
+  seasonGames: number,
+  gameMode: GameMode = "open",
 ) =>
-  [seasonGames, ...LINEUP_SLOTS.map((slot) => lineup[slot] ?? "open"), coachId ?? "open"].join("~");
+  [seasonGames, gameMode, ...LINEUP_SLOTS.map((slot) => lineup[slot] ?? "open"), coachId ?? "open"].join("~");
 
 export const getSimulationSeed = (
   lineup: LineupAssignment,
   coachId: string | null,
-  seasonGames: 82 | 84,
-) => hashString(buildShareCode(lineup, coachId, seasonGames));
+  seasonGames: number,
+  gameMode: GameMode,
+) => hashString(buildShareCode(lineup, coachId, seasonGames, gameMode));
 
 export const winProbabilityFromRatings = (
   teamRating: number,
@@ -45,10 +47,11 @@ export const simulateSeason = (
   coachId: string | null,
   players: Player[],
   coaches: Coach[],
-  seasonGames: 82 | 84,
+  seasonGames: number,
+  gameMode: GameMode,
 ): SeasonResult => {
   const breakdown = calculateTeamRating(lineup, players, coachId, coaches);
-  const seed = getSimulationSeed(lineup, coachId, seasonGames);
+  const seed = getSimulationSeed(lineup, coachId, seasonGames, gameMode);
   let rngState = seed;
   let wins = 0;
   let probabilityTotal = 0;
@@ -61,8 +64,8 @@ export const simulateSeason = (
     const third = nextRandom(rngState);
     rngState = third.nextState;
 
-    const opponentRating = 56 + ((first.value + second.value) / 2) * 20;
-    const fatigueModifier = game > seasonGames * 0.78 ? -((1 - (breakdown.chemistry + breakdown.coachUnit * 0.22) / 120) * 0.95) : 0;
+    const opponentRating = 54 + ((first.value + second.value) / 2) * 18;
+    const fatigueModifier = game > seasonGames * 0.8 ? -((1 - (breakdown.chemistry + breakdown.coachUnit * 0.22) / 122) * 0.72) : 0;
     const winProbability = winProbabilityFromRatings(
       breakdown.teamRating + fatigueModifier,
       opponentRating,
@@ -80,11 +83,12 @@ export const simulateSeason = (
   const losses = seasonGames - wins;
   const averageWinProbability = round((probabilityTotal / seasonGames) * 100, 1);
   const { strengths, weaknesses } = getStrengthsAndWeaknesses(breakdown);
-  const shareCode = buildShareCode(lineup, coachId, seasonGames);
+  const shareCode = buildShareCode(lineup, coachId, seasonGames, gameMode);
 
   return {
     seed,
     seasonGames,
+    gameMode,
     wins,
     losses,
     grade: getGradeForRating(breakdown.teamRating),

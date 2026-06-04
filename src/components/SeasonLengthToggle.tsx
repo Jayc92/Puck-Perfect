@@ -1,8 +1,9 @@
-import { SEASON_OPTIONS } from "../lib/constants";
+import { GAME_MODE_OPTIONS } from "../lib/constants";
+import type { GameMode } from "../types";
 
 type SeasonLengthToggleProps = {
-  value: 82 | 84;
-  onChange: (value: 82 | 84) => void;
+  value: GameMode;
+  onChange: (value: GameMode) => void;
 };
 
 export function SeasonLengthToggle({ value, onChange }: SeasonLengthToggleProps) {
@@ -12,7 +13,7 @@ export function SeasonLengthToggle({ value, onChange }: SeasonLengthToggleProps)
       role="group"
       aria-label="Season target"
     >
-      {SEASON_OPTIONS.map((option) => {
+      {GAME_MODE_OPTIONS.map((option) => {
         const active = option === value;
         return (
           <button
@@ -26,7 +27,7 @@ export function SeasonLengthToggle({ value, onChange }: SeasonLengthToggleProps)
             }`}
             aria-pressed={active}
           >
-            {option} games
+            {option === "cap" ? "84-0 cap" : "84-0 open"}
           </button>
         );
       })}

@@ -1,7 +1,10 @@
-import type { GameStatus } from "../types";
+import { SALARY_CAP } from "../lib/constants";
+import type { GameMode, GameStatus } from "../types";
 
 type HeaderProps = {
-  seasonGames: 82 | 84;
+  seasonGames: number;
+  gameMode: GameMode;
+  salarySpent: number;
   isSampleDataset: boolean;
   status: GameStatus;
   draftedCount: number;
@@ -9,6 +12,8 @@ type HeaderProps = {
 
 export function Header({
   seasonGames,
+  gameMode,
+  salarySpent,
   isSampleDataset,
   status,
   draftedCount,
@@ -37,8 +42,11 @@ export function Header({
             <div className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-[0.22em] text-white">
               Target {seasonGames}-0
             </div>
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-[0.22em] text-slate-200">
+              {gameMode === "cap" ? `$${SALARY_CAP} cap` : "Open build"}
+            </div>
             <div className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-[0.22em] text-slate-200 sm:block">
-              {isSampleDataset ? "Sample pool" : "Imported pool"}
+              {gameMode === "cap" ? `$${salarySpent}/${SALARY_CAP}` : isSampleDataset ? "Sample pool" : "Imported pool"}
             </div>
           </div>
         </div>
@@ -60,7 +68,7 @@ export function Header({
               Puck Perfect
             </p>
             <p className="mt-2 max-w-2xl text-sm text-slate-200 sm:text-base">
-              Draft a six-player all-time lineup plus a head coach, chase {seasonGames}-0, and see if your hockey superteam can finish a perfect season.
+              Draft a six-player all-time lineup plus a head coach, chase {seasonGames}-0, and see if your hockey superteam can finish a perfect season{gameMode === "cap" ? ` under the $${SALARY_CAP} cap` : ""}.
             </p>
           </div>
         </div>
@@ -69,6 +77,12 @@ export function Header({
           <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
             <div className="text-[0.7rem] uppercase tracking-[0.25em] text-ice/75">Target</div>
             <div className="mt-1 font-display text-2xl text-white">{seasonGames}-0</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+            <div className="text-[0.7rem] uppercase tracking-[0.25em] text-ice/75">Mode</div>
+            <div className="mt-1 font-display text-xl text-white">
+              {gameMode === "cap" ? "Salary Cap" : "Open Build"}
+            </div>
           </div>
         </div>
       </div>

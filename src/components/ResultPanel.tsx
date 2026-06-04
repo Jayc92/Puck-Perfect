@@ -1,3 +1,4 @@
+import { SALARY_CAP } from "../lib/constants";
 import { getResultSummary } from "../lib/scoring";
 import { getCoachById, getPlayerById, getPlayerSeasonLabel } from "../lib/utils";
 import { ShareButton } from "./ShareButton";
@@ -9,6 +10,7 @@ type ResultPanelProps = {
   players: Player[];
   coaches: Coach[];
   coachId: string | null;
+  salarySpent: number;
   shareUrl: string;
   onNewDraft: () => void;
 };
@@ -19,6 +21,7 @@ export function ResultPanel({
   players,
   coaches,
   coachId,
+  salarySpent,
   shareUrl,
   onNewDraft,
 }: ResultPanelProps) {
@@ -49,6 +52,9 @@ export function ResultPanel({
           <Metric label="Grade" value={result.grade} />
           <Metric label="Team Rating" value={result.teamRating} />
           <Metric label="Avg Win Odds" value={`${result.averageWinProbability}%`} />
+          {result.gameMode === "cap" ? (
+            <Metric label="Cap Used" value={`$${salarySpent}/${SALARY_CAP}`} />
+          ) : null}
         </div>
       </div>
 
@@ -133,10 +139,10 @@ export function ResultPanel({
       <div className="mt-6 rounded-[1.5rem] border border-ice/15 bg-ice/8 p-4 text-sm leading-6 text-slate-100">
         <div className="text-xs uppercase tracking-[0.3em] text-ice/75">How Rating Works</div>
         <p className="mt-3">
-          Forwards are 34% of the final score, defense 22%, goalie 22%, coach 6%, and fit plus chemistry 16%. Elite defensemen and goalies now scale much closer to elite forwards, with direct per-game production, legacy scoring volume, awards, and era normalization all feeding the final grades.
+          Forwards are 36% of the final score, defense 20%, goalie 20%, coach 6%, and fit plus chemistry 18%. Skater overalls now start from decade-specific points bands, then separate further with points per game, games played, a slight goals-over-assists edge, and small trophy bumps.
         </p>
         <p className="mt-2 text-slate-300">
-          Goalie grades lean wins first, then save percentage, awards, GAA, and shutouts. Some older defensive inputs are still estimated conservatively when historical stat coverage is incomplete.
+          Goalie grades still lean wins first, then save percentage, awards, GAA, and shutouts. Some older defensive inputs are still estimated conservatively when historical stat coverage is incomplete.
         </p>
       </div>
     </section>

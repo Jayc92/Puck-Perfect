@@ -1,5 +1,6 @@
 export type PlayerPosition = "LW" | "C" | "RW" | "D" | "G";
 export type DraftEntityKind = "player" | "coach";
+export type GameMode = "open" | "cap";
 
 export type LineupSlotId = "LW" | "C" | "RW" | "D1" | "D2" | "G";
 
@@ -121,6 +122,7 @@ export type CoachRatingBreakdown = {
 export type SeasonResult = {
   seed: number;
   seasonGames: number;
+  gameMode: GameMode;
   wins: number;
   losses: number;
   grade: string;
@@ -142,7 +144,8 @@ export type PersistedGameState = {
   currentPrompt: DraftPrompt | null;
   lastPromptKey: string | null;
   selectedPlayerId: string | null;
-  seasonGames: 82 | 84;
+  seasonGames: number;
+  gameMode: GameMode;
   rngState: number;
   result: SeasonResult | null;
 };

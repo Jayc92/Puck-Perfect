@@ -15,6 +15,7 @@ const VALID_STATUSES = new Set([
   "complete",
   "results",
 ]);
+const VALID_GAME_MODES = new Set(["open", "cap"]);
 
 const VALID_LINEUP_KEYS = ["LW", "C", "RW", "D1", "D2", "G"] as const;
 
@@ -32,7 +33,11 @@ const isPersistedGameState = (value: unknown): value is PersistedGameState => {
     return false;
   }
 
-  if (state.seasonGames !== 82 && state.seasonGames !== 84) {
+  if (state.seasonGames !== 84) {
+    return false;
+  }
+
+  if (!VALID_GAME_MODES.has(state.gameMode as string)) {
     return false;
   }
 

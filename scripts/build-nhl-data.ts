@@ -78,8 +78,20 @@ type TeamSeasonEntry = {
   teamName: string;
   seasonId: number;
   games: number;
+  goals: number;
+  assists: number;
   points: number;
+  plusMinus: number;
+  shots: number;
+  penaltyMinutes: number;
   wins: number;
+  losses: number;
+  tiesOt: number;
+  savePctNumerator: number;
+  savePctWeight: number;
+  gaaNumerator: number;
+  gaaWeight: number;
+  shutouts: number;
 };
 
 type AggregateAccumulator = {
@@ -513,8 +525,20 @@ function mergeSkaters(
         teamName: resolveRowTeamName(row, franchiseCatalog, franchise),
         seasonId,
         games: gamesPlayed * franchiseShare,
+        goals: goals * franchiseShare,
+        assists: assists * franchiseShare,
         points: points * franchiseShare,
+        plusMinus: plusMinus * franchiseShare,
+        shots: shots * franchiseShare,
+        penaltyMinutes: penaltyMinutes * franchiseShare,
         wins: 0,
+        losses: 0,
+        tiesOt: 0,
+        savePctNumerator: 0,
+        savePctWeight: 0,
+        gaaNumerator: 0,
+        gaaWeight: 0,
+        shutouts: 0,
       });
     });
 
@@ -572,8 +596,20 @@ function mergeGoalies(
         teamName: resolveRowTeamName(row, franchiseCatalog, franchise),
         seasonId,
         games: gamesPlayed * franchiseShare,
+        goals: 0,
+        assists: 0,
         points: 0,
         wins: wins * franchiseShare,
+        losses: losses * franchiseShare,
+        tiesOt: tiesOt * franchiseShare,
+        savePctNumerator: savePct * gamesPlayed * franchiseShare,
+        savePctWeight: gamesPlayed * franchiseShare,
+        gaaNumerator: gaa * gamesPlayed * franchiseShare,
+        gaaWeight: gamesPlayed * franchiseShare,
+        shutouts: shutouts * franchiseShare,
+        plusMinus: 0,
+        shots: 0,
+        penaltyMinutes: 0,
       });
     });
 
@@ -644,8 +680,20 @@ function appendTeamSeason(
   );
   if (existing) {
     existing.games += entry.games;
+    existing.goals += entry.goals;
+    existing.assists += entry.assists;
     existing.points += entry.points;
+    existing.plusMinus += entry.plusMinus;
+    existing.shots += entry.shots;
+    existing.penaltyMinutes += entry.penaltyMinutes;
     existing.wins += entry.wins;
+    existing.losses += entry.losses;
+    existing.tiesOt += entry.tiesOt;
+    existing.savePctNumerator += entry.savePctNumerator;
+    existing.savePctWeight += entry.savePctWeight;
+    existing.gaaNumerator += entry.gaaNumerator;
+    existing.gaaWeight += entry.gaaWeight;
+    existing.shutouts += entry.shutouts;
   } else {
     entries.push(entry);
   }
@@ -674,71 +722,64 @@ function finalizePlayers(
       continue;
     }
 
-    const teams = [...accumulator.teamSeasons.entries()]
-      .map(([franchiseKey, seasons]) => {
-        const seasonIds = seasons.map((season) => season.seasonId).sort((left, right) => left - right);
-        const teamName = seasons[seasons.length - 1]?.teamName ?? franchiseKey;
-        const startSeason = Number(String(seasonIds[0]).slice(0, 4));
-        const endSeason = Number(String(seasonIds[seasonIds.length - 1]).slice(0, 4));
-        const decadeTags = buildQualifiedDecadeTags(
-          seasons,
-          accumulator.primaryPosition,
-        );
+    for (const [franchiseKey, seasons] of accumulator.teamSeasons.entries()) {
+      const slices = buildDecadeSlices(seasons, accumulator.primaryPosition);
 
-        return {
-          franchiseId: franchiseKey,
-          teamName,
-          startSeason,
-          endSeason,
-          decadeTags,
+      slices.forEach((slice) => {
+        const roleTag = buildRoleTagFromStats(accumulator.primaryPosition, slice.stats);
+        const player: Player = {
+          id: buildPlayerCardSlug(
+            accumulator.name,
+            accumulator.playerId,
+            franchiseKey,
+            slice.decadeTag,
+            seenIds,
+          ),
+          name: accumulator.name,
+          primaryPosition: accumulator.primaryPosition,
+          eligiblePositions: [...accumulator.eligiblePositions],
+          franchiseIds: [franchiseKey],
+          teams: [
+            {
+              franchiseId: franchiseKey,
+              teamName: slice.teamName,
+              startSeason: slice.startSeason,
+              endSeason: slice.endSeason,
+              decadeTags: [slice.decadeTag],
+            },
+          ],
+          stats: {
+            games: roundCount(slice.stats.games),
+            goals: isGoalie ? undefined : roundCount(slice.stats.goals),
+            assists: isGoalie ? undefined : roundCount(slice.stats.assists),
+            points: isGoalie ? undefined : roundCount(slice.stats.points),
+            plusMinus: isGoalie ? undefined : normalizeOptionalStat(roundCount(slice.stats.plusMinus)),
+            shots: isGoalie ? undefined : normalizeOptionalStat(roundCount(slice.stats.shots)),
+            penaltyMinutes: isGoalie ? undefined : normalizeOptionalStat(roundCount(slice.stats.penaltyMinutes)),
+            goalieWins: isGoalie ? roundCount(slice.stats.wins) : undefined,
+            goalieLosses: isGoalie ? roundCount(slice.stats.losses) : undefined,
+            goalieTiesOt: isGoalie ? roundCount(slice.stats.tiesOt) : undefined,
+            savePct:
+              isGoalie && slice.stats.savePctWeight > 0
+                ? round(slice.stats.savePctNumerator / slice.stats.savePctWeight, 3)
+                : undefined,
+            gaa:
+              isGoalie && slice.stats.gaaWeight > 0
+                ? round(slice.stats.gaaNumerator / slice.stats.gaaWeight, 2)
+                : undefined,
+            shutouts: isGoalie ? roundCount(slice.stats.shutouts) : undefined,
+          },
+          eraNotes:
+            isGoalie || slice.startSeason >= 1980
+              ? undefined
+              : "Historical defensive inputs may be partially estimated because older season-level tracking is incomplete.",
+          roleTag,
+          sourceQuality: "imported",
         };
-      })
-      .filter((team) => team.decadeTags.length > 0)
-      .sort((left, right) => left.startSeason - right.startSeason);
 
-    if (!teams.length) {
-      continue;
+        players.push(player);
+      });
     }
-
-    const roleTag = buildRoleTag(accumulator);
-    const player: Player = {
-      id: buildPlayerSlug(accumulator.name, accumulator.playerId, seenIds),
-      name: accumulator.name,
-      primaryPosition: accumulator.primaryPosition,
-      eligiblePositions: [...accumulator.eligiblePositions],
-      franchiseIds: [...accumulator.franchiseKeys],
-      teams,
-      stats: {
-        games: accumulator.stats.games,
-        goals: isGoalie ? undefined : accumulator.stats.goals,
-        assists: isGoalie ? undefined : accumulator.stats.assists,
-        points: isGoalie ? undefined : accumulator.stats.points,
-        plusMinus: isGoalie ? undefined : normalizeOptionalStat(accumulator.stats.plusMinus),
-        shots: isGoalie ? undefined : normalizeOptionalStat(accumulator.stats.shots),
-        penaltyMinutes: isGoalie ? undefined : normalizeOptionalStat(accumulator.stats.penaltyMinutes),
-        goalieWins: isGoalie ? accumulator.stats.goalieWins : undefined,
-        goalieLosses: isGoalie ? accumulator.stats.goalieLosses : undefined,
-        goalieTiesOt: isGoalie ? accumulator.stats.goalieTiesOt : undefined,
-        savePct:
-          isGoalie && accumulator.stats.savePctWeight > 0
-            ? round(accumulator.stats.savePctNumerator / accumulator.stats.savePctWeight, 3)
-            : undefined,
-        gaa:
-          isGoalie && accumulator.stats.gaaWeight > 0
-            ? round(accumulator.stats.gaaNumerator / accumulator.stats.gaaWeight, 2)
-            : undefined,
-        shutouts: isGoalie ? accumulator.stats.shutouts : undefined,
-      },
-      eraNotes: isGoalie
-        ? undefined
-        : teams.some((team) => team.startSeason < 1980)
-          ? "Historical defensive inputs may be partially estimated because older season-level tracking is incomplete."
-          : undefined,
-      roleTag,
-      sourceQuality: "imported",
-    };
-
-    players.push(player);
   }
 
   return players.sort((left, right) => {
@@ -748,8 +789,14 @@ function finalizePlayers(
   });
 }
 
-function buildPlayerSlug(name: string, playerId: string, seenIds: Set<string>) {
-  const baseSlug = slugify(name);
+function buildPlayerCardSlug(
+  name: string,
+  playerId: string,
+  franchiseId: string,
+  decadeTag: string,
+  seenIds: Set<string>,
+) {
+  const baseSlug = slugify(`${name}-${franchiseId}-${decadeTag}`);
   if (!seenIds.has(baseSlug)) {
     seenIds.add(baseSlug);
     return baseSlug;
@@ -838,6 +885,79 @@ function buildQualifiedDecadeTags(
     .sort();
 }
 
+function buildDecadeSlices(
+  seasons: TeamSeasonEntry[],
+  primaryPosition: PlayerPosition,
+) {
+  const byDecade = new Map<
+    string,
+    {
+      decadeTag: string;
+      teamName: string;
+      startSeason: number;
+      endSeason: number;
+      stats: Omit<TeamSeasonEntry, "franchiseKey" | "teamName" | "seasonId">;
+    }
+  >();
+
+  const allowedDecades = new Set(buildQualifiedDecadeTags(seasons, primaryPosition));
+
+  seasons.forEach((season) => {
+    const seasonStart = Number(String(season.seasonId).slice(0, 4));
+    const decadeTag = `${Math.floor(seasonStart / 10) * 10}s`;
+    if (!allowedDecades.has(decadeTag)) {
+      return;
+    }
+
+    const existing = byDecade.get(decadeTag) ?? {
+      decadeTag,
+      teamName: season.teamName,
+      startSeason: seasonStart,
+      endSeason: seasonStart,
+      stats: {
+        games: 0,
+        goals: 0,
+        assists: 0,
+        points: 0,
+        plusMinus: 0,
+        shots: 0,
+        penaltyMinutes: 0,
+        wins: 0,
+        losses: 0,
+        tiesOt: 0,
+        savePctNumerator: 0,
+        savePctWeight: 0,
+        gaaNumerator: 0,
+        gaaWeight: 0,
+        shutouts: 0,
+      },
+    };
+
+    existing.teamName = season.teamName;
+    existing.startSeason = Math.min(existing.startSeason, seasonStart);
+    existing.endSeason = Math.max(existing.endSeason, seasonStart);
+    existing.stats.games += season.games;
+    existing.stats.goals += season.goals;
+    existing.stats.assists += season.assists;
+    existing.stats.points += season.points;
+    existing.stats.plusMinus += season.plusMinus;
+    existing.stats.shots += season.shots;
+    existing.stats.penaltyMinutes += season.penaltyMinutes;
+    existing.stats.wins += season.wins;
+    existing.stats.losses += season.losses;
+    existing.stats.tiesOt += season.tiesOt;
+    existing.stats.savePctNumerator += season.savePctNumerator;
+    existing.stats.savePctWeight += season.savePctWeight;
+    existing.stats.gaaNumerator += season.gaaNumerator;
+    existing.stats.gaaWeight += season.gaaWeight;
+    existing.stats.shutouts += season.shutouts;
+
+    byDecade.set(decadeTag, existing);
+  });
+
+  return [...byDecade.values()].sort((left, right) => left.startSeason - right.startSeason);
+}
+
 function mapSkaterPosition(positionCode: string | null, playerName: string) {
   switch ((positionCode ?? "").toUpperCase()) {
     case "C":
@@ -861,25 +981,28 @@ function inferWingSideFromName(name: string): "LW" | "RW" {
   return slugify(name).charCodeAt(0) % 2 === 0 ? "LW" : "RW";
 }
 
-function buildRoleTag(accumulator: AggregateAccumulator) {
-  const games = Math.max(accumulator.stats.games, 1);
+function buildRoleTagFromStats(
+  primaryPosition: PlayerPosition,
+  stats: Omit<TeamSeasonEntry, "franchiseKey" | "teamName" | "seasonId">,
+) {
+  const games = Math.max(stats.games, 1);
 
-  if (accumulator.primaryPosition === "G") {
-    const savePct = accumulator.stats.savePctWeight > 0
-      ? accumulator.stats.savePctNumerator / accumulator.stats.savePctWeight
+  if (primaryPosition === "G") {
+    const savePct = stats.savePctWeight > 0
+      ? stats.savePctNumerator / stats.savePctWeight
       : 0;
     if (savePct >= 0.918) {
       return "Elite Stopper";
     }
-    if (accumulator.stats.goalieWins / games >= 0.55) {
+    if (stats.wins / games >= 0.55) {
       return "Workhorse Goalie";
     }
     return "Steady Goalie";
   }
 
-  if (accumulator.primaryPosition === "D") {
-    const pointsPerGame = accumulator.stats.points / games;
-    const plusMinusPerGame = accumulator.stats.plusMinus / games;
+  if (primaryPosition === "D") {
+    const pointsPerGame = stats.points / games;
+    const plusMinusPerGame = stats.plusMinus / games;
     if (pointsPerGame >= 0.7) {
       return "Offensive D";
     }
@@ -889,9 +1012,9 @@ function buildRoleTag(accumulator: AggregateAccumulator) {
     return "Minute-Eater";
   }
 
-  const goalsPerGame = accumulator.stats.goals / games;
-  const assistsPerGame = accumulator.stats.assists / games;
-  const pointsPerGame = accumulator.stats.points / games;
+  const goalsPerGame = stats.goals / games;
+  const assistsPerGame = stats.assists / games;
+  const pointsPerGame = stats.points / games;
 
   if (goalsPerGame >= 0.45) {
     return "Sniper";
@@ -1051,6 +1174,10 @@ function normalizeOptionalStat(value: number) {
 function round(value: number, precision: number) {
   const factor = 10 ** precision;
   return Math.round(value * factor) / factor;
+}
+
+function roundCount(value: number) {
+  return Math.round(value);
 }
 
 main().catch((error) => {

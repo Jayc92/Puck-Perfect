@@ -4,6 +4,8 @@ import type { Player } from "../types";
 type PlayerCardProps = {
   player: Player;
   overall: number;
+  capCost?: number;
+  showCapCost?: boolean;
   selected?: boolean;
   muted?: boolean;
   franchiseId?: string;
@@ -15,6 +17,8 @@ type PlayerCardProps = {
 export function PlayerCard({
   player,
   overall,
+  capCost,
+  showCapCost = false,
   selected = false,
   muted = false,
   franchiseId,
@@ -59,6 +63,11 @@ export function PlayerCard({
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.18em] text-ember">
                 {player.roleTag}
               </span>
+              {showCapCost ? (
+                <span className="rounded-full border border-aurora/20 bg-aurora/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-aurora">
+                  ${capCost}
+                </span>
+              ) : null}
             </div>
           </div>
 
@@ -134,6 +143,11 @@ export function PlayerCard({
       <div className="mt-4 inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.22em] text-ember">
         {player.roleTag}
       </div>
+      {showCapCost ? (
+        <div className="mt-3 inline-flex rounded-full border border-aurora/20 bg-aurora/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-aurora">
+          ${capCost}
+        </div>
+      ) : null}
 
       <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-200">
         {isGoalie ? (

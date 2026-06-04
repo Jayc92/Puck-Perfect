@@ -14,6 +14,8 @@ describe("draft prompt generation", () => {
       createInitialLineup(),
       null,
       [],
+      "open",
+      20,
       123456,
     );
 
@@ -45,6 +47,8 @@ describe("draft prompt generation", () => {
       createInitialLineup(),
       null,
       [],
+      "open",
+      20,
       123456,
     );
 
@@ -57,6 +61,8 @@ describe("draft prompt generation", () => {
       createInitialLineup(),
       selectedCoachId,
       [],
+      "open",
+      20,
       first.rngState,
       `${first.prompt?.franchiseId}:${first.prompt?.decadeTag}`,
     );
@@ -81,6 +87,7 @@ describe("draft prompt generation", () => {
 
     expect(parsed).toEqual({
       seasonGames: 84,
+      gameMode: "open",
       lineup,
       coachId: "scotty-bowman",
     });
@@ -94,6 +101,8 @@ describe("draft prompt generation", () => {
       createInitialLineup(),
       null,
       [],
+      "open",
+      20,
       123456,
     );
 
@@ -106,6 +115,8 @@ describe("draft prompt generation", () => {
       createInitialLineup(),
       first.prompt?.candidateIds[0] ?? null,
       [],
+      "open",
+      20,
       first.rngState,
       `${first.prompt?.franchiseId}:${first.prompt?.decadeTag}`,
     );

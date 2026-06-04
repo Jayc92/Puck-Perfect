@@ -1,11 +1,14 @@
+import { SALARY_CAP } from "../lib/constants";
+import type { GameMode } from "../types";
+
 type IntroPanelProps = {
-  seasonGames: 82 | 84;
-  onStart: (seasonGames?: 82 | 84) => void;
+  gameMode: GameMode;
+  onStart: (gameMode?: GameMode) => void;
   onOpenHowToPlay: () => void;
 };
 
 export function IntroPanel({
-  seasonGames,
+  gameMode,
   onStart,
   onOpenHowToPlay,
 }: IntroPanelProps) {
@@ -23,22 +26,22 @@ export function IntroPanel({
 
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
         <ModeCard
-          eyebrow="Classic Run"
-          title="82-game pursuit"
-          description="The standard challenge. Build a lineup aimed at the modern perfect regular season benchmark."
+          eyebrow="Open Ice"
+          title="84-0 without cap"
+          description="The pure superteam run. Hire a coach, chase the strongest decade cards available, and see if raw star power can survive all 84 games."
           accent="from-ice/30 via-aurora/12 to-transparent"
-          buttonLabel="Start 82-Game Draft"
-          onClick={() => onStart(82)}
-          active={seasonGames === 82}
+          buttonLabel="Start Open Run"
+          onClick={() => onStart("open")}
+          active={gameMode === "open"}
         />
         <ModeCard
-          eyebrow="Marathon Run"
-          title="84-game pursuit"
-          description="A longer chase for players who want a slightly harsher path and a more demanding perfect record."
+          eyebrow="Cap Crunch"
+          title={`84-0 with $${SALARY_CAP} cap`}
+          description="The strategy mode. Build under a strict decade-point budget where superstars cost more and bargain picks can keep a run alive."
           accent="from-ember/28 via-ember/10 to-transparent"
-          buttonLabel="Start 84-Game Draft"
-          onClick={() => onStart(84)}
-          active={seasonGames === 84}
+          buttonLabel="Start Cap Run"
+          onClick={() => onStart("cap")}
+          active={gameMode === "cap"}
         />
       </div>
 
@@ -46,7 +49,7 @@ export function IntroPanel({
         <div>
           <div className="text-xs uppercase tracking-[0.26em] text-ice/70">Draft Format</div>
           <div className="mt-2 text-sm leading-6 text-slate-200">
-            Seven rounds. No duplicates. The first round locks in a head coach, then the next six spins build out your starting lineup. Once a franchise-era prompt lands, you must draft from that pool. Wingers can flex across both sides, and some centers can slide to wing.
+            Seven rounds. No duplicates. The first round locks in a head coach, then the next six spins build out your starting lineup. Once a franchise-era prompt lands, you must draft from that pool. Wingers can flex across both sides, some centers can slide to wing, and cap mode prices every player by decade scoring output.
           </div>
         </div>
         <button

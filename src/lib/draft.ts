@@ -1,6 +1,7 @@
 import { EMPTY_LINEUP, LINEUP_SLOTS, SLOT_POSITION_MAP } from "./constants";
+import { getPlayerCapCost } from "./scoring";
 import { getCoachPromptPools, getEligibleLineupSlots, getPlayerById, getPromptPools, getOpenSlots, randomInt, shuffleWithState } from "./utils";
-import type { Coach, DraftPrompt, Franchise, LineupAssignment, Player } from "../types";
+import type { Coach, DraftPrompt, Franchise, GameMode, LineupAssignment, Player } from "../types";
 
 type PromptBuildResult = {
   prompt: DraftPrompt | null;
@@ -25,6 +26,8 @@ export const buildDraftPrompt = (
   lineup: LineupAssignment,
   coachId: string | null,
   draftedPlayerIds: string[],
+  gameMode: GameMode,
+  remainingBudget: number,
   rngState: number,
   lastPromptKey: string | null = null,
 ): PromptBuildResult => {
@@ -59,15 +62,28 @@ export const buildDraftPrompt = (
   }
 
   const openSlots = getOpenSlots(lineup);
+  const capReserve = Math.max(openSlots.length - 1, 0);
   const allPools = getPromptPools(players, franchises)
     .map((pool) => {
       const eligible = pool.candidateIds
         .map((playerId) => getPlayerById(players, playerId))
         .filter((player): player is Player => Boolean(player))
         .filter(
-          (player) =>
-            !draftedPlayerIds.includes(player.id) &&
-            getEligibleLineupSlots(player, lineup).length > 0,
+          (player) => {
+            if (draftedPlayerIds.includes(player.id)) {
+              return false;
+            }
+
+            if (getEligibleLineupSlots(player, lineup).length === 0) {
+              return false;
+            }
+
+            if (gameMode !== "cap") {
+              return true;
+            }
+
+            return getPlayerCapCost(player) <= Math.max(remainingBudget - capReserve, 1);
+          },
         );
 
       return {
@@ -120,8 +136,24 @@ export const getAutoAssignSlot = (
   lineup: LineupAssignment,
 ) => getEligibleLineupSlots(player, lineup)[0] ?? null;
 
-export const parseShareCode = (value: string): { seasonGames: 82 | 84; lineup: LineupAssignment; coachId: string | null } | null => {
+export const parseShareCode = (
+  value: string,
+): { seasonGames: number; gameMode: GameMode; lineup: LineupAssignment; coachId: string | null } | null => {
   const compactMatch = value.split("~");
+  if (compactMatch.length === 3 + LINEUP_SLOTS.length) {
+    const seasonGames = Number(compactMatch[0]);
+    const gameMode = compactMatch[1] === "cap" ? "cap" : compactMatch[1] === "open" ? "open" : null;
+    if ((seasonGames === 82 || seasonGames === 84) && gameMode) {
+      const lineup = createInitialLineup();
+      LINEUP_SLOTS.forEach((slot, index) => {
+        const playerId = compactMatch[index + 2];
+        lineup[slot] = playerId === "open" ? null : playerId;
+      });
+      const coachId = compactMatch[2 + LINEUP_SLOTS.length] === "open" ? null : compactMatch[2 + LINEUP_SLOTS.length];
+      return { seasonGames, gameMode, lineup, coachId };
+    }
+  }
+
   if (compactMatch.length === 2 + LINEUP_SLOTS.length) {
     const seasonGames = Number(compactMatch[0]);
     if (seasonGames === 82 || seasonGames === 84) {
@@ -131,7 +163,7 @@ export const parseShareCode = (value: string): { seasonGames: 82 | 84; lineup: L
         lineup[slot] = playerId === "open" ? null : playerId;
       });
       const coachId = compactMatch[1 + LINEUP_SLOTS.length] === "open" ? null : compactMatch[1 + LINEUP_SLOTS.length];
-      return { seasonGames, lineup, coachId };
+      return { seasonGames, gameMode: "open", lineup, coachId };
     }
   }
 
@@ -157,5 +189,10 @@ export const parseShareCode = (value: string): { seasonGames: 82 | 84; lineup: L
     }
   });
 
-  return { seasonGames, lineup, coachId: parts.coach === "open" || !parts.coach ? null : parts.coach };
+  return {
+    seasonGames,
+    gameMode: parts.mode === "cap" ? "cap" : "open",
+    lineup,
+    coachId: parts.coach === "open" || !parts.coach ? null : parts.coach,
+  };
 };

@@ -8,7 +8,6 @@ import { LineupBoard } from "./components/LineupBoard";
 import { PlayerCard } from "./components/PlayerCard";
 import { PrivacyPolicyModal } from "./components/PrivacyPolicyModal";
 import { ResultPanel } from "./components/ResultPanel";
-import { SeasonLengthToggle } from "./components/SeasonLengthToggle";
 import { SiteFooter } from "./components/SiteFooter";
 import {
   getFallbackPlayerDataset,
@@ -27,10 +26,13 @@ import {
   CURRENT_GAME_STATE_VERSION,
   EMPTY_LINEUP,
   LINEUP_SLOTS,
+  SALARY_CAP,
+  SEASON_GAMES,
 } from "./lib/constants";
 import {
   calculateCoachRating,
   calculatePlayerRating,
+  getPlayerCapCost,
 } from "./lib/scoring";
 import {
   clearSavedGame,
@@ -49,6 +51,7 @@ import {
 import type {
   Coach,
   DraftPrompt,
+  GameMode,
   GameStatus,
   LineupAssignment,
   PersistedGameState,
@@ -72,7 +75,8 @@ function App() {
   const [currentPrompt, setCurrentPrompt] = useState<DraftPrompt | null>(null);
   const [lastPromptKey, setLastPromptKey] = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
-  const [seasonGames, setSeasonGames] = useState<82 | 84>(82);
+  const [seasonGames, setSeasonGames] = useState(SEASON_GAMES);
+  const [gameMode, setGameMode] = useState<GameMode>("open");
   const [rngState, setRngState] = useState<number>(
     hashString("puck-perfect-default"),
   );
@@ -124,6 +128,7 @@ function App() {
           dataset.players,
           dataset.coaches,
           sharedState.seasonGames,
+          sharedState.gameMode,
         );
         const sharedDraftedIds = LINEUP_SLOTS.map(
           (slot) => sharedState.lineup[slot],
@@ -132,6 +137,7 @@ function App() {
         setCoachId(sharedState.coachId);
         setDraftedPlayerIds(sharedDraftedIds);
         setSeasonGames(sharedState.seasonGames);
+        setGameMode(sharedState.gameMode);
         setResult(sharedResult);
         setStatus("results");
         setIsHydrated(true);
@@ -153,6 +159,7 @@ function App() {
     setLastPromptKey(savedGame.lastPromptKey);
     setSelectedPlayerId(savedGame.selectedPlayerId);
     setSeasonGames(savedGame.seasonGames);
+    setGameMode(savedGame.gameMode);
     setRngState(savedGame.rngState);
     setResult(savedGame.result);
     setIsHydrated(true);
@@ -173,6 +180,7 @@ function App() {
       lastPromptKey,
       selectedPlayerId,
       seasonGames,
+      gameMode,
       rngState,
       result,
     };
@@ -188,6 +196,7 @@ function App() {
     result,
     rngState,
     seasonGames,
+    gameMode,
     selectedPlayerId,
     status,
   ]);
@@ -217,6 +226,17 @@ function App() {
         lineup,
         coachId,
         draftedPlayerIds,
+        gameMode,
+        gameMode === "cap"
+          ? Math.max(
+              SALARY_CAP -
+                draftedPlayerIds.reduce((total, playerId) => {
+                  const player = getPlayerById(dataset.players, playerId);
+                  return total + (player ? getPlayerCapCost(player) : 0);
+                }, 0),
+              0,
+            )
+          : SALARY_CAP,
         rngState,
         lastPromptKey,
       );
@@ -231,6 +251,7 @@ function App() {
     coachId,
     dataset,
     draftedPlayerIds,
+    gameMode,
     lastPromptKey,
     lineup,
     rngState,
@@ -249,18 +270,29 @@ function App() {
         dataset.players,
         dataset.coaches,
         seasonGames,
+        gameMode,
       );
       setResult(nextResult);
       setStatus("results");
     }, 650);
 
     return () => window.clearTimeout(timeout);
-  }, [coachId, dataset, lineup, seasonGames, status]);
+  }, [coachId, dataset, gameMode, lineup, seasonGames, status]);
 
   const fallbackDataset = getFallbackPlayerDataset();
   const activeDataset = dataset ?? fallbackDataset;
   const activePlayers = activeDataset.players;
   const activeCoaches = activeDataset.coaches;
+  const salarySpent = useMemo(
+    () =>
+      draftedPlayerIds.reduce((total, playerId) => {
+        const player = getPlayerById(activePlayers, playerId);
+        return total + (player ? getPlayerCapCost(player) : 0);
+      }, 0),
+    [activePlayers, draftedPlayerIds],
+  );
+  const remainingBudget =
+    gameMode === "cap" ? Math.max(SALARY_CAP - salarySpent, 0) : SALARY_CAP;
 
   const selectedPlayer = useMemo(
     () =>
@@ -447,9 +479,10 @@ function App() {
     beginSpin();
   };
 
-  const handleStartWithSeason = (games?: 82 | 84) => {
-    if (games) {
-      setSeasonGames(games);
+  const handleStartWithMode = (mode?: GameMode) => {
+    setSeasonGames(SEASON_GAMES);
+    if (mode) {
+      setGameMode(mode);
     }
     handleStartDraft();
   };
@@ -510,16 +543,6 @@ function App() {
     setStatus("ready");
   };
 
-  const handleSeasonToggle = (value: 82 | 84) => {
-    setSeasonGames(value);
-    if (result && hasCompleteRoster && dataset) {
-      setResult(
-        simulateSeason(lineup, coachId, dataset.players, dataset.coaches, value),
-      );
-      setStatus("results");
-    }
-  };
-
   const handleNewDraft = () => {
     const freshSeed = hashString(`${Date.now()}`);
     setStatus("intro");
@@ -529,6 +552,8 @@ function App() {
     setCurrentPrompt(null);
     setLastPromptKey(null);
     setSelectedPlayerId(null);
+    setSeasonGames(SEASON_GAMES);
+    setGameMode("open");
     setPlayerSearch("");
     setPlayerFilter("ALL");
     setPlayerSort("bestFit");
@@ -553,6 +578,8 @@ function App() {
         <div className="space-y-6">
           <Header
             seasonGames={seasonGames}
+            gameMode={gameMode}
+            salarySpent={salarySpent}
             isSampleDataset={activeDataset.isSample}
             status={status}
             draftedCount={draftedEntityCount}
@@ -598,13 +625,24 @@ function App() {
       <div className="space-y-6">
         <Header
           seasonGames={seasonGames}
+          gameMode={gameMode}
+          salarySpent={salarySpent}
           isSampleDataset={activeDataset.isSample}
           status={status}
           draftedCount={draftedEntityCount}
         />
 
         <div className="flex flex-col gap-3 rounded-[1.75rem] border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <SeasonLengthToggle value={seasonGames} onChange={handleSeasonToggle} />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="rounded-full border border-white/10 bg-white/8 px-4 py-3 text-sm uppercase tracking-[0.2em] text-white">
+              {gameMode === "cap" ? "84-0 $20 cap mode" : "84-0 open mode"}
+            </div>
+            {gameMode === "cap" ? (
+              <div className="rounded-full border border-aurora/20 bg-aurora/10 px-4 py-3 text-sm uppercase tracking-[0.2em] text-aurora">
+                ${salarySpent}/${SALARY_CAP} spent
+              </div>
+            ) : null}
+          </div>
           <div className="flex flex-wrap gap-3">
             {status !== "intro" ? (
               <button
@@ -627,8 +665,8 @@ function App() {
 
         {status === "intro" ? (
           <IntroPanel
-            seasonGames={seasonGames}
-            onStart={handleStartWithSeason}
+            gameMode={gameMode}
+            onStart={handleStartWithMode}
             onOpenHowToPlay={() => setShowTutorial(true)}
           />
         ) : null}
@@ -733,6 +771,11 @@ function App() {
                         <span className="rounded-full border border-ice/20 bg-ice/10 px-3 py-2 text-ice">
                           Heuristic forward flexibility is enabled
                         </span>
+                        {gameMode === "cap" ? (
+                          <span className="rounded-full border border-aurora/20 bg-aurora/10 px-3 py-2 text-aurora">
+                            ${remainingBudget} cap left
+                          </span>
+                        ) : null}
                       </div>
 
                       <div className="flex flex-col gap-3 xl:flex-row">
@@ -805,6 +848,8 @@ function App() {
                             key={player.id}
                             player={player}
                             overall={overall}
+                            capCost={getPlayerCapCost(player)}
+                            showCapCost={gameMode === "cap"}
                             franchiseId={currentPrompt?.franchiseId}
                             selected={selectedPlayerId === player.id}
                             muted={Boolean(selectedPlayerId && selectedPlayerId !== player.id)}
@@ -966,6 +1011,7 @@ function App() {
             players={activePlayers}
             coaches={activeCoaches}
             coachId={coachId}
+            salarySpent={salarySpent}
             shareUrl={shareUrl}
             onNewDraft={handleNewDraft}
           />

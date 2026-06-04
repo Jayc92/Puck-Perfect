@@ -46,6 +46,26 @@ const awardWeight = (awards?: string[]) => {
   );
 };
 
+const countAwards = (awards: string[] | undefined, matcher: (award: string) => boolean) =>
+  awards?.filter(matcher).length ?? 0;
+
+const getTrophyBonus = (player: Player) => {
+  if (!player.awards?.length) {
+    return 0;
+  }
+
+  const mvpCount = countAwards(
+    player.awards,
+    (award) => award.includes("Hart") || award.includes("Ted Lindsay"),
+  );
+  const cupCount = countAwards(
+    player.awards,
+    (award) => award.includes("Stanley Cup"),
+  );
+
+  return round((mvpCount + cupCount) * 0.1, 1);
+};
+
 const getEraAdjustment = (player: Player) => {
   const decade = player.teams[0]?.decadeTags?.[0] ?? "2000s";
   return ERA_MULTIPLIERS[decade] ?? 1;
@@ -73,47 +93,71 @@ const getGamesTierScore = (games: number) => {
   return 0.6;
 };
 
-const getForwardLegacyBonus = (points: number, games: number, pointsPerGame: number) => {
-  let bonus = 0;
-
-  if (points >= 2000) bonus += 10;
-  else if (points >= 1700) bonus += 8;
-  else if (points >= 1500) bonus += 6.5;
-  else if (points >= 1200) bonus += 5;
-  else if (points >= 1000) bonus += 4;
-  else if (points >= 700) bonus += 2.5;
-
-  if (pointsPerGame >= 1.6) bonus += 10;
-  else if (pointsPerGame >= 1.45) bonus += 8;
-  else if (pointsPerGame >= 1.25) bonus += 6;
-  else if (pointsPerGame >= 1.05) bonus += 4;
-  else if (pointsPerGame >= 0.9) bonus += 2;
-
-  if (games >= 1000 && points >= 1000) bonus += 4;
-  if (games >= 900 && points >= 1200 && pointsPerGame >= 1.3) bonus += 4;
-
-  return clamp(bonus, 0, 20);
+const getDecadePointBase = (points: number) => {
+  if (points >= 1000) return 95;
+  if (points >= 900) return 91;
+  if (points >= 800) return 87;
+  if (points >= 700) return 82;
+  if (points >= 600) return 77;
+  if (points >= 550) return 74;
+  if (points >= 500) return 71;
+  if (points >= 450) return 68;
+  if (points >= 400) return 65;
+  if (points >= 350) return 62;
+  if (points >= 300) return 59;
+  if (points >= 250) return 56;
+  if (points >= 200) return 53;
+  if (points >= 150) return 50;
+  return 46;
 };
 
-const getDefenseLegacyBonus = (points: number, games: number, pointsPerGame: number) => {
-  let bonus = 0;
+const getPointsPerGameBonus = (pointsPerGame: number) => {
+  if (pointsPerGame >= 1.9) return 4.6;
+  if (pointsPerGame >= 1.8) return 4;
+  if (pointsPerGame >= 1.65) return 3.5;
+  if (pointsPerGame >= 1.5) return 2.8;
+  if (pointsPerGame >= 1.4) return 2.2;
+  if (pointsPerGame >= 1.3) return 1.6;
+  if (pointsPerGame >= 1.2) return 1.1;
+  if (pointsPerGame >= 1.1) return 0.6;
+  if (pointsPerGame >= 1.0) return 0.2;
+  return 0;
+};
 
-  if (points >= 1500) bonus += 9;
-  else if (points >= 1200) bonus += 7;
-  else if (points >= 1000) bonus += 5;
-  else if (points >= 800) bonus += 3;
-  else if (points >= 600) bonus += 1.5;
+const getLongevityBonus = (games: number) => {
+  if (games >= 1200) return 1.8;
+  if (games >= 1000) return 1.3;
+  if (games >= 800) return 0.9;
+  if (games >= 600) return 0.5;
+  if (games >= 400) return 0;
+  if (games >= 250) return -0.5;
+  if (games >= 200) return -1;
+  return -2.6;
+};
 
-  if (pointsPerGame >= 1.15) bonus += 9;
-  else if (pointsPerGame >= 1.0) bonus += 7;
-  else if (pointsPerGame >= 0.85) bonus += 4.5;
-  else if (pointsPerGame >= 0.72) bonus += 2.5;
-  else if (pointsPerGame >= 0.62) bonus += 1;
+const getGoalTiltBonus = (goals: number, assists: number, points: number) =>
+  clamp(((goals - assists) / Math.max(points, 1)) * 5, -1, 1);
 
-  if (games >= 1000 && points >= 900) bonus += 2.5;
-  if (games >= 500 && pointsPerGame >= 0.9) bonus += 2.5;
+const getTwoWayBonus = (player: Player, pointsPerGame: number) => {
+  const plusMinusPerGame = getPerGame(player.stats.plusMinus, player.stats.games);
+  const awardCount = countAwards(
+    player.awards,
+    (award) => award.includes("Norris") || award.includes("Selke"),
+  );
 
-  return clamp(bonus, 0, 16);
+  if (player.primaryPosition === "D") {
+    return clamp(
+      plusMinusPerGame * 4 + awardCount * 0.4 + (pointsPerGame >= 1 ? 0.6 : 0),
+      -1.5,
+      2.5,
+    );
+  }
+
+  if (player.primaryPosition === "C") {
+    return clamp(plusMinusPerGame * 2.4 + awardCount * 0.3, -1, 1.4);
+  }
+
+  return clamp(plusMinusPerGame * 1.6, -0.8, 0.8);
 };
 
 export const calculateSkaterRating = (
@@ -121,54 +165,18 @@ export const calculateSkaterRating = (
   assignedSlot: LineupSlotId,
 ): PlayerRatingBreakdown => {
   const games = Math.max(player.stats.games, 1);
-  const goalsPerGame = getPerGame(player.stats.goals, games);
-  const assistsPerGame = getPerGame(player.stats.assists, games);
   const pointsPerGame = getPerGame(player.stats.points, games);
-  const shotsPerGame = getPerGame(player.stats.shots, games);
   const defensiveImpact = getDefensiveImpact(player);
   const eraAdjustment = getEraAdjustment(player);
-  const awardsBonus = awardWeight(player.awards);
+  const awardsBonus = getTrophyBonus(player);
   const targetPosition = SLOT_POSITION_MAP[assignedSlot];
   const totalPoints = player.stats.points ?? 0;
-  const gamesScore = getGamesTierScore(games);
-
-  let offense = 0;
-  let defense = 0;
-  let legacyBonus = 0;
-
-  if (targetPosition === "C") {
-    offense =
-      linearNormalize(pointsPerGame, 1.95) * 34 +
-      logNormalize(totalPoints, 2900) * 26 +
-      linearNormalize(assistsPerGame, 1.35) * 8 +
-      linearNormalize(goalsPerGame, 0.75) * 6 +
-      linearNormalize(shotsPerGame, 4.6) * 4 +
-      gamesScore;
-    legacyBonus = getForwardLegacyBonus(totalPoints, games, pointsPerGame);
-    defense = defensiveImpact * 0.18 + 4;
-  } else if (targetPosition === "LW" || targetPosition === "RW") {
-    offense =
-      linearNormalize(pointsPerGame, 1.8) * 34 +
-      logNormalize(totalPoints, 2600) * 26 +
-      linearNormalize(goalsPerGame, 0.78) * 8 +
-      linearNormalize(assistsPerGame, 1.2) * 8 +
-      linearNormalize(shotsPerGame, 5.0) * 4 +
-      gamesScore;
-    legacyBonus = getForwardLegacyBonus(totalPoints, games, pointsPerGame);
-    defense = defensiveImpact * 0.14 + 2;
-  } else {
-    offense =
-      linearNormalize(pointsPerGame, 1.2) * 26 +
-      linearNormalize(totalPoints, 1600) * 18 +
-      linearNormalize(assistsPerGame, 0.95) * 8 +
-      linearNormalize(goalsPerGame, 0.35) * 5 +
-      linearNormalize(shotsPerGame, 3.4) * 3 +
-      gamesScore * 0.6;
-    legacyBonus = getDefenseLegacyBonus(totalPoints, games, pointsPerGame);
-    defense = defensiveImpact * 0.32 + 8;
-  }
-
-  const rawRating = (offense + defense + legacyBonus + awardsBonus) * eraAdjustment;
+  const offense = getDecadePointBase(totalPoints)
+    + getPointsPerGameBonus(pointsPerGame)
+    + getLongevityBonus(games)
+    + getGoalTiltBonus(player.stats.goals ?? 0, player.stats.assists ?? 0, totalPoints);
+  const defense = getTwoWayBonus(player, pointsPerGame) + defensiveImpact * 0.02;
+  const rawRating = (offense + defense + awardsBonus) * eraAdjustment;
   const fitPenalty =
     player.primaryPosition === targetPosition
       ? 0
@@ -186,11 +194,11 @@ export const calculateSkaterRating = (
 
   return {
     playerId: player.id,
-    rating: clamp(round(rawRating - fitPenalty, 1), 48, 100),
+    rating: clamp(round(rawRating - fitPenalty, 1), 45, 100),
     offense: round(offense * eraAdjustment, 1),
     defense: round(defense * eraAdjustment, 1),
     eraAdjustment: round((eraAdjustment - 1) * 100, 1),
-    awardsBonus: round(awardsBonus + legacyBonus, 1),
+    awardsBonus: round(awardsBonus, 1),
     fitPenalty,
     notes,
   };
@@ -253,6 +261,16 @@ export const calculateCoachRating = (coach: Coach): CoachRatingBreakdown => {
   };
 };
 
+export const getPlayerCapCost = (player: Player) => {
+  const points = player.stats.points ?? 0;
+
+  if (points >= 850) return 5;
+  if (points >= 700) return 4;
+  if (points >= 550) return 3;
+  if (points >= 400) return 2;
+  return 1;
+};
+
 const getSpreadPenalty = (ratings: number[]) => {
   if (!ratings.length) {
     return 0;
@@ -267,7 +285,7 @@ export const calculateTeamRating = (
   coaches: Coach[],
 ): TeamRatingBreakdown => {
   const notes = [
-    "Forwards drive 34% of the team rating, defense 22%, goalie 22%, coach 6%, and chemistry/fit 16%.",
+    "Forwards drive 36% of the team rating, defense 20%, goalie 20%, coach 6%, and chemistry/fit 18%.",
   ];
 
   const breakdowns = {} as Record<LineupSlotId, PlayerRatingBreakdown>;
@@ -302,11 +320,11 @@ export const calculateTeamRating = (
   const chemistry = round(
     clamp(
       fitScore * 0.32 +
-        balanceScore * 0.34 +
+        balanceScore * 0.36 +
         coachUnit * 0.18 +
         (forwardUnit > 90 ? 8 : 0) +
         (defenseUnit > 88 ? 6 : 0) +
-        (goalieRating > 92 ? 6 : 0),
+        (goalieRating > 90 ? 7 : 0),
       56,
       100,
     ),
@@ -325,11 +343,11 @@ export const calculateTeamRating = (
 
   const teamRating = round(
     clamp(
-      forwardUnit * 0.34 +
-        defenseUnit * 0.22 +
-        goalieRating * 0.22 +
+      forwardUnit * 0.36 +
+        defenseUnit * 0.2 +
+        goalieRating * 0.2 +
         coachUnit * 0.06 +
-        chemistry * 0.16,
+        chemistry * 0.18,
       0,
       100,
     ),
@@ -368,7 +386,7 @@ export const getResultSummary = (
 
   return [
     `Puck Perfect: ${result.wins}-${result.losses}`,
-    `${result.seasonGames}-game season • Grade ${result.grade} • Team rating ${result.teamRating}`,
+    `${result.seasonGames}-game season • ${result.gameMode === "cap" ? "$20 cap mode" : "open mode"} • Grade ${result.grade} • Team rating ${result.teamRating}`,
     result.explanation,
     slotSummary,
     `Coach: ${coach?.name ?? "Open"}`,
