@@ -606,13 +606,13 @@ function App() {
         <div className="flex flex-col gap-3 rounded-[1.75rem] border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
           <SeasonLengthToggle value={seasonGames} onChange={handleSeasonToggle} />
           <div className="flex flex-wrap gap-3">
-            {status === "intro" || status === "results" ? (
+            {status !== "intro" ? (
               <button
                 type="button"
                 onClick={handleNewDraft}
                 className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-white/20"
               >
-                New Draft
+                {status === "results" ? "New Draft" : "Reset Run"}
               </button>
             ) : null}
             <button
