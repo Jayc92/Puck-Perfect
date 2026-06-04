@@ -132,8 +132,13 @@ function ReelCard({
     <div className={`rounded-[1.45rem] bg-gradient-to-br p-[3px] ${active || spinning ? accent : "from-white/10 to-white/10"}`}>
       <div className="rounded-[1.3rem] border border-white/10 bg-[#121b2f] px-4 py-5 text-center">
         <div className="text-[0.68rem] uppercase tracking-[0.34em] text-slate-400">{label}</div>
-        <div className={`mt-3 font-display text-4xl uppercase tracking-[0.1em] text-white ${spinning ? "animate-pulseSpin" : "animate-slideUp"}`}>
-          {value}
+        <div className="mt-3 min-h-[3rem] overflow-hidden">
+          <div
+            key={value}
+            className={`font-display text-4xl uppercase tracking-[0.1em] leading-none text-white ${spinning ? "animate-pulseSpin" : ""}`}
+          >
+            {value}
+          </div>
         </div>
       </div>
     </div>
