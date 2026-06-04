@@ -1,0 +1,37 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#081323"/>
+  <rect x="24" y="24" width="1152" height="582" rx="36" fill="url(#panel)" stroke="#30455F" stroke-width="2"/>
+  <rect x="64" y="64" width="1072" height="502" rx="30" fill="#0B1629" stroke="#20334B"/>
+  <path d="M140 144H1060C1096.45 144 1126 173.549 1126 210V446C1126 482.451 1096.45 512 1060 512H140C103.549 512 74 482.451 74 446V210C74 173.549 103.549 144 140 144Z" fill="#10203A" stroke="#F2F6FA" stroke-width="4"/>
+  <path d="M600 144V512" stroke="#E88CA5" stroke-width="4"/>
+  <path d="M404 144V512" stroke="#56C5FF" stroke-width="4"/>
+  <path d="M796 144V512" stroke="#56C5FF" stroke-width="4"/>
+  <circle cx="600" cy="328" r="56" stroke="#78D9FF" stroke-width="4"/>
+  <circle cx="232" cy="248" r="44" stroke="#D08B9F" stroke-width="3"/>
+  <circle cx="968" cy="248" r="44" stroke="#D08B9F" stroke-width="3"/>
+  <circle cx="232" cy="408" r="44" stroke="#D08B9F" stroke-width="3"/>
+  <circle cx="968" cy="408" r="44" stroke="#D08B9F" stroke-width="3"/>
+  <path d="M126 328H74" stroke="#D08B9F" stroke-width="3" stroke-linecap="round"/>
+  <path d="M1126 328H1074" stroke="#D08B9F" stroke-width="3" stroke-linecap="round"/>
+  <path d="M516 512C516 465.608 553.608 428 600 428C646.392 428 684 465.608 684 512" stroke="#D08B9F" stroke-width="4"/>
+  <path d="M560 512C560 489.909 577.909 472 600 472C622.091 472 640 489.909 640 512" stroke="#7EF4E0" stroke-width="4"/>
+  <rect x="108" y="96" width="340" height="44" rx="22" fill="#0F1E34" stroke="#49617B"/>
+  <text x="148" y="124" fill="#9EE8FF" font-size="22" font-family="Avenir Next, Segoe UI, sans-serif" font-weight="700" letter-spacing="6">ORIGINAL HOCKEY DRAFT GAME</text>
+  <text x="108" y="220" fill="#F7FAFD" font-size="86" font-family="Avenir Next, Segoe UI, sans-serif" font-weight="800" letter-spacing="6">PUCK PERFECT</text>
+  <text x="108" y="278" fill="#E6EFF7" font-size="30" font-family="Avenir Next, Segoe UI, sans-serif" font-weight="500">Draft a six-player all-time lineup and chase 82-0.</text>
+  <text x="108" y="316" fill="#E6EFF7" font-size="30" font-family="Avenir Next, Segoe UI, sans-serif" font-weight="500">Spin team and era pools, build your starting six, and see if your superteam survives.</text>
+  <rect x="108" y="380" width="232" height="118" rx="24" fill="#111D31" stroke="#30455F"/>
+  <text x="140" y="425" fill="#96DFFF" font-size="24" font-family="Avenir Next, Segoe UI, sans-serif" font-weight="700" letter-spacing="5">TARGET</text>
+  <text x="140" y="476" fill="#F7FAFD" font-size="58" font-family="Avenir Next, Segoe UI, sans-serif" font-weight="800">82-0</text>
+  <rect x="366" y="380" width="330" height="118" rx="24" fill="#111D31" stroke="#30455F"/>
+  <text x="398" y="425" fill="#96DFFF" font-size="24" font-family="Avenir Next, Segoe UI, sans-serif" font-weight="700" letter-spacing="5">FORMAT</text>
+  <text x="398" y="470" fill="#F7FAFD" font-size="34" font-family="Avenir Next, Segoe UI, sans-serif" font-weight="700">LW • C • RW • D1 • D2 • G</text>
+  <text x="108" y="548" fill="#7FEFE0" font-size="24" font-family="Avenir Next, Segoe UI, sans-serif" font-weight="700" letter-spacing="4">puck-perfect.vercel.app</text>
+  <defs>
+    <linearGradient id="panel" x1="24" y1="24" x2="1176" y2="606" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0D1830"/>
+      <stop offset="0.5" stop-color="#0A172B"/>
+      <stop offset="1" stop-color="#10182C"/>
+    </linearGradient>
+  </defs>
+</svg>

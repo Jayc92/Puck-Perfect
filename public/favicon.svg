@@ -1,0 +1,22 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="256" height="256" rx="56" fill="#081323"/>
+  <rect x="16" y="16" width="224" height="224" rx="44" fill="url(#bg)" stroke="#3E536F" stroke-width="4"/>
+  <path d="M56 58H200C214.359 58 226 69.6406 226 84V172C226 186.359 214.359 198 200 198H56C41.6406 198 30 186.359 30 172V84C30 69.6406 41.6406 58 56 58Z" fill="#10203A" stroke="#F3F7FB" stroke-width="4"/>
+  <path d="M128 58V198" stroke="#E88CA5" stroke-width="4"/>
+  <path d="M92 58V198" stroke="#56C5FF" stroke-width="4"/>
+  <path d="M164 58V198" stroke="#56C5FF" stroke-width="4"/>
+  <circle cx="128" cy="128" r="28" stroke="#78D9FF" stroke-width="4"/>
+  <path d="M44 128H30" stroke="#E88CA5" stroke-width="4" stroke-linecap="round"/>
+  <path d="M226 128H212" stroke="#E88CA5" stroke-width="4" stroke-linecap="round"/>
+  <path d="M72 170C72 146.804 90.804 128 114 128H142C165.196 128 184 146.804 184 170V198H72V170Z" stroke="#E88CA5" stroke-width="4"/>
+  <path d="M100 198C100 182.536 112.536 170 128 170C143.464 170 156 182.536 156 198" stroke="#7EF4E0" stroke-width="4"/>
+  <rect x="52" y="84" width="152" height="88" rx="20" fill="#091629" stroke="#1D3558" stroke-width="2"/>
+  <text x="128" y="118" text-anchor="middle" fill="#F7FAFD" font-size="42" font-family="Avenir Next, Segoe UI, sans-serif" font-weight="800" letter-spacing="7">PP</text>
+  <text x="128" y="150" text-anchor="middle" fill="#9EE8FF" font-size="15" font-family="Avenir Next, Segoe UI, sans-serif" font-weight="700" letter-spacing="5">PUCK PERFECT</text>
+  <defs>
+    <linearGradient id="bg" x1="24" y1="24" x2="232" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B1830"/>
+      <stop offset="1" stop-color="#0A1222"/>
+    </linearGradient>
+  </defs>
+</svg>
