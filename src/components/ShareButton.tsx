@@ -54,7 +54,7 @@ export function ShareButton({
         type="button"
         onClick={handleShareCard}
         disabled={sharing}
-        className="rounded-full border border-ice/20 bg-ice/10 px-5 py-3 text-sm uppercase tracking-[0.2em] text-ice transition hover:bg-ice hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+        className="rounded-full border border-ice/20 bg-ice/10 px-5 py-3 text-sm uppercase tracking-[0.2em] text-ice transition duration-200 motion-safe:hover:-translate-y-0.5 hover:bg-ice hover:text-ink hover:shadow-[0_12px_24px_rgba(159,232,255,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
         aria-label="Share or download result card image"
       >
         {sharing ? "Preparing Card..." : sharedCard ? "Card Ready!" : "Share Card"}
@@ -62,7 +62,7 @@ export function ShareButton({
       <button
         type="button"
         onClick={handleCopy}
-        className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-white/20"
+        className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm uppercase tracking-[0.2em] text-white transition duration-200 motion-safe:hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-[0_12px_24px_rgba(8,19,35,0.24)]"
         aria-label="Copy result summary and share link"
       >
         {copied ? "Copied!" : "Copy Text"}

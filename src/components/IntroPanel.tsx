@@ -55,7 +55,7 @@ export function IntroPanel({
         <button
           type="button"
           onClick={onOpenHowToPlay}
-          className="rounded-full border border-white/10 bg-white/10 px-5 py-2.5 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-white/20"
+          className="rounded-full border border-white/10 bg-white/10 px-5 py-2.5 text-sm uppercase tracking-[0.2em] text-white transition duration-200 motion-safe:hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-[0_12px_24px_rgba(8,19,35,0.24)]"
         >
           Review How To Play
         </button>
@@ -85,10 +85,10 @@ function ModeCard({
 }: ModeCardProps) {
   return (
     <article
-      className={`relative overflow-hidden rounded-[1.7rem] border p-5 ${
+      className={`relative overflow-hidden rounded-[1.7rem] border p-5 transition duration-200 motion-safe:hover:-translate-y-0.5 ${
         active
-          ? "border-ice/30 bg-white/[0.08]"
-          : "border-white/10 bg-white/[0.03]"
+          ? "border-ice/30 bg-white/[0.08] shadow-[0_18px_42px_rgba(12,18,30,0.24)]"
+          : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:shadow-[0_18px_42px_rgba(12,18,30,0.22)]"
       }`}
     >
       <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accent}`} />
@@ -106,7 +106,7 @@ function ModeCard({
         <button
           type="button"
           onClick={onClick}
-          className="rounded-[1rem] bg-gradient-to-r from-ember to-[#ff9c47] px-5 py-3.5 text-sm font-semibold uppercase tracking-[0.14em] text-ink transition hover:brightness-110"
+          className="rounded-[1rem] bg-gradient-to-r from-ember to-[#ff9c47] px-5 py-3.5 text-sm font-semibold uppercase tracking-[0.14em] text-ink transition duration-200 motion-safe:hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_18px_30px_rgba(255,140,95,0.24)]"
         >
           {buttonLabel}
         </button>

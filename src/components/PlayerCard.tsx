@@ -33,10 +33,10 @@ export function PlayerCard({
   if (isRow) {
     return (
       <article
-        className={`rounded-[1.2rem] border px-4 py-3.5 transition ${
+        className={`rounded-[1.2rem] border px-4 py-3.5 transition duration-200 motion-safe:hover:-translate-y-0.5 ${
           selected
             ? "border-ember/70 bg-ember/10 shadow-[0_0_0_1px_rgba(255,133,95,0.18)]"
-            : "border-white/10 bg-[#141c2f] hover:border-white/20 hover:bg-[#18223a]"
+            : "border-white/10 bg-[#141c2f] hover:border-white/20 hover:bg-[#18223a] hover:shadow-[0_14px_28px_rgba(7,16,30,0.22)]"
         } ${muted ? "opacity-70" : ""}`}
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -116,10 +116,10 @@ export function PlayerCard({
 
   return (
     <article
-      className={`rounded-[1.35rem] border p-4 transition ${
+      className={`rounded-[1.35rem] border p-4 transition duration-200 motion-safe:hover:-translate-y-0.5 ${
         selected
           ? "border-ice bg-ice/10 shadow-[0_0_0_1px_rgba(159,232,255,0.25),0_16px_40px_rgba(0,0,0,0.35)]"
-          : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.08]"
+          : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.08] hover:shadow-[0_16px_34px_rgba(8,19,35,0.24)]"
       } ${muted ? "opacity-70" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">

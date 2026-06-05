@@ -31,7 +31,7 @@ export function DraftSpinner({
 
     const interval = window.setInterval(() => {
       setSpinFrame((frame) => frame + 1);
-    }, 72);
+    }, 42);
 
     return () => window.clearInterval(interval);
   }, [isSpinning]);
@@ -47,7 +47,7 @@ export function DraftSpinner({
 
   const spinningTeamLabel = fallbackFranchises[spinFrame % fallbackFranchises.length];
   const spinningEraLabel = fallbackEras[(spinFrame * 2) % fallbackEras.length];
-  const revealSettledPrompt = isSpinning && Boolean(pendingPrompt) && spinFrame >= 4;
+  const revealSettledPrompt = isSpinning && Boolean(pendingPrompt) && spinFrame >= 9;
 
   const teamLabel = isSpinning
     ? revealSettledPrompt
