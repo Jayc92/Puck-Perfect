@@ -252,7 +252,7 @@ function App() {
       setPendingPrompt(null);
       setLastPromptKey(getPromptKey(promptResult.prompt));
       setStatus(promptResult.prompt ? "choosingPlayer" : "ready");
-    }, 1300);
+    }, 925);
 
     return () => window.clearTimeout(timeout);
   }, [
