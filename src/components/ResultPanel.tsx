@@ -29,26 +29,26 @@ export function ResultPanel({
   const coach = getCoachById(coaches, coachId);
 
   return (
-    <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/10 to-white/[0.03] p-5 shadow-glow">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <section className="rounded-[1.8rem] border border-white/10 bg-gradient-to-br from-white/10 to-white/[0.03] p-4 shadow-glow sm:p-5">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,18rem)] lg:items-start">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-ice/70">Projected Record</p>
-          <h2 className="mt-2 font-display text-6xl uppercase tracking-[0.08em] text-white sm:text-7xl">
+          <h2 className="mt-1.5 font-display text-[clamp(3.6rem,8vw,5.75rem)] uppercase tracking-[0.08em] text-white">
             {result.wins}-{result.losses}
           </h2>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <span className="font-display text-3xl text-aurora">{result.grade}</span>
-            <span className="text-lg font-semibold uppercase tracking-[0.12em] text-aurora">
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <span className="font-display text-2xl text-aurora">{result.grade}</span>
+            <span className="text-base font-semibold uppercase tracking-[0.12em] text-aurora">
               {getDynastyLabel(result.teamRating)}
             </span>
             <span className="text-sm text-slate-300">• {result.teamRating} pts</span>
           </div>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-200">
+          <p className="mt-2.5 max-w-3xl text-sm leading-6 text-slate-200">
             {result.explanation}
           </p>
         </div>
 
-        <div className="grid min-w-[220px] gap-3 sm:grid-cols-2 lg:grid-cols-1">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
           <Metric label="Grade" value={result.grade} />
           <Metric label="Team Rating" value={result.teamRating} />
           <Metric label="Avg Win Odds" value={`${result.averageWinProbability}%`} />
@@ -58,7 +58,7 @@ export function ResultPanel({
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mt-5 flex flex-wrap gap-3">
         <ShareButton
           summary={summary}
           shareUrl={shareUrl}
@@ -70,13 +70,13 @@ export function ResultPanel({
         <button
           type="button"
           onClick={onNewDraft}
-          className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-white/20"
+          className="rounded-full border border-white/10 bg-white/10 px-5 py-2.5 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-white/20"
         >
           Build Another
         </button>
       </div>
 
-      <div className="mt-6 space-y-3">
+      <div className="mt-5 space-y-3">
         {Object.entries(lineup).map(([slot, playerId]) => {
           const player = getPlayerById(players, playerId);
           if (!player) {
@@ -93,13 +93,13 @@ export function ResultPanel({
         })}
 
         {coach ? (
-          <div className="grid gap-4 rounded-[1.5rem] border border-white/10 bg-slate-950/55 p-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
+          <div className="grid gap-4 rounded-[1.3rem] border border-white/10 bg-slate-950/55 p-3.5 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-gradient-to-br from-aurora/30 to-ice/20 font-display text-lg uppercase tracking-[0.08em] text-white">
+              <div className="flex h-12 w-12 flex-none items-center justify-center rounded-[1rem] bg-gradient-to-br from-aurora/30 to-ice/20 font-display text-base uppercase tracking-[0.08em] text-white">
                 HC
               </div>
               <div>
-                <div className="font-display text-2xl uppercase tracking-[0.04em] text-white">
+                <div className="font-display text-xl uppercase tracking-[0.04em] text-white">
                   {coach.name}
                 </div>
                 <div className="mt-1 text-sm uppercase tracking-[0.12em] text-slate-300">
@@ -116,9 +116,9 @@ export function ResultPanel({
         ) : null}
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-[1.5rem] border border-white/10 bg-slate-950/60 p-4">
-          <h3 className="font-display text-xl uppercase tracking-[0.12em] text-white">Strengths</h3>
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-[1.3rem] border border-white/10 bg-slate-950/60 p-4">
+          <h3 className="font-display text-lg uppercase tracking-[0.12em] text-white">Strengths</h3>
           <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-200">
             {result.strengths.map((item) => (
               <li key={item}>• {item}</li>
@@ -126,8 +126,8 @@ export function ResultPanel({
           </ul>
         </div>
 
-        <div className="rounded-[1.5rem] border border-white/10 bg-slate-950/60 p-4">
-          <h3 className="font-display text-xl uppercase tracking-[0.12em] text-white">Weaknesses</h3>
+        <div className="rounded-[1.3rem] border border-white/10 bg-slate-950/60 p-4">
+          <h3 className="font-display text-lg uppercase tracking-[0.12em] text-white">Weaknesses</h3>
           <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-200">
             {result.weaknesses.map((item) => (
               <li key={item}>• {item}</li>
@@ -136,7 +136,7 @@ export function ResultPanel({
         </div>
       </div>
 
-      <div className="mt-6 rounded-[1.5rem] border border-ice/15 bg-ice/8 p-4 text-sm leading-6 text-slate-100">
+      <div className="mt-5 rounded-[1.3rem] border border-ice/15 bg-ice/8 p-4 text-sm leading-6 text-slate-100">
         <div className="text-xs uppercase tracking-[0.3em] text-ice/75">How Rating Works</div>
         <p className="mt-3">
           Forwards are 36% of the final score, defense 20%, goalie 20%, coach 6%, and fit plus chemistry 18%. Skater overalls now start from decade-specific points bands, then separate further with points per game, games played, a slight goals-over-assists edge, and small trophy bumps.
@@ -151,9 +151,9 @@ export function ResultPanel({
 
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/65 p-4">
+    <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/65 p-3.5">
       <div className="text-[0.7rem] uppercase tracking-[0.25em] text-slate-400">{label}</div>
-      <div className="mt-2 font-display text-3xl text-white">{value}</div>
+      <div className="mt-1.5 font-display text-[1.8rem] text-white">{value}</div>
     </div>
   );
 }
@@ -164,13 +164,13 @@ function PlayerResultRow({ slot, player }: { slot: string; player: Player }) {
   const badge = `${slot}`;
 
   return (
-    <div className="grid gap-4 rounded-[1.5rem] border border-white/10 bg-slate-950/55 p-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
+    <div className="grid gap-4 rounded-[1.3rem] border border-white/10 bg-slate-950/55 p-3.5 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
       <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-gradient-to-br from-ice/30 to-aurora/20 font-display text-lg uppercase tracking-[0.08em] text-white">
+        <div className="flex h-12 w-12 flex-none items-center justify-center rounded-[1rem] bg-gradient-to-br from-ice/30 to-aurora/20 font-display text-base uppercase tracking-[0.08em] text-white">
           {badge}
         </div>
         <div>
-          <div className="font-display text-2xl uppercase tracking-[0.04em] text-white">
+          <div className="font-display text-xl uppercase tracking-[0.04em] text-white">
             {player.name}
           </div>
           <div className="mt-1 text-sm uppercase tracking-[0.12em] text-slate-300">

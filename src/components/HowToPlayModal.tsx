@@ -19,11 +19,11 @@ export function HowToPlayModal({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const steps = useMemo(
-    () => [
-      "Spin first for a franchise and decade, then hire one eligible head coach from that revealed pool.",
-      "After your bench boss is locked in, keep spinning for player pools and place each pick into one of the highlighted open slots they can actually play.",
-      "Fill LW, C, RW, D1, D2, and G to trigger the season sim and see if your coach-led build can hit 84-0 in open mode or under the salary cap.",
-    ],
+      () => [
+        "Spin first for a franchise and decade, then hire one eligible head coach from that revealed pool.",
+        "After your bench boss is locked in, keep spinning for player pools and place each pick into one of the highlighted open slots they can actually play.",
+        "Fill LW, C, RW, D1, D2, and G to trigger the season sim and see if your coach-led build can hit 84-0 in the classic chase or under the salary cap.",
+      ],
     [],
   );
 

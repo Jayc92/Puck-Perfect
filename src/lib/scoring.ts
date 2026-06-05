@@ -386,7 +386,7 @@ export const getResultSummary = (
 
   return [
     `Puck Perfect: ${result.wins}-${result.losses}`,
-    `${result.seasonGames}-game season • ${result.gameMode === "cap" ? "$20 cap mode" : "open mode"} • Grade ${result.grade} • Team rating ${result.teamRating}`,
+    `${result.seasonGames}-game season • ${result.gameMode === "cap" ? "$20 cap mode" : "classic run"} • Grade ${result.grade} • Team rating ${result.teamRating}`,
     result.explanation,
     slotSummary,
     `Coach: ${coach?.name ?? "Open"}`,

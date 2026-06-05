@@ -27,7 +27,7 @@ export function PositionSlot({
         onClick={onClick}
         disabled={!onClick}
         aria-label={player ? `${slot} assigned to ${player.name}` : `${slot} empty`}
-        className={`flex h-[4.35rem] w-[4.35rem] flex-col items-center justify-center text-center transition sm:h-[4.8rem] sm:w-[4.8rem] ${
+        className={`flex h-[4.1rem] w-[4.1rem] flex-col items-center justify-center rounded-[1.25rem] border border-slate-900/18 bg-[rgba(17,27,39,0.72)] px-2 text-center shadow-[0_10px_22px_rgba(12,16,28,0.18)] backdrop-blur-sm transition hover:border-slate-900/30 sm:h-[4.45rem] sm:w-[4.45rem] ${
           player
             ? "text-white"
             : isSelected
@@ -40,11 +40,11 @@ export function PositionSlot({
         <div className={`text-xs uppercase tracking-[0.24em] ${getRoleColor(slot.startsWith("D") ? "D" : (slot as "LW" | "C" | "RW" | "G"))}`}>
           {slot}
         </div>
-        <div className="mt-1 px-1 font-display text-[1.1rem] uppercase tracking-[0.06em] text-white sm:mt-1.5 sm:text-[1.25rem]">
+        <div className="mt-1 px-1 font-display text-[1rem] uppercase tracking-[0.04em] text-white sm:mt-1 sm:text-[1.08rem]">
           {player ? getCompactPlayerLabel(player.name) : slot}
         </div>
         {player ? (
-          <div className="mt-1 text-[0.65rem] uppercase tracking-[0.2em] text-slate-300">
+          <div className="mt-1 text-[0.62rem] uppercase tracking-[0.2em] text-slate-300">
             {overall ?? "--"}
           </div>
         ) : null}

@@ -33,7 +33,7 @@ export function PlayerCard({
   if (isRow) {
     return (
       <article
-        className={`rounded-[1.3rem] border px-4 py-4 transition ${
+        className={`rounded-[1.2rem] border px-4 py-3.5 transition ${
           selected
             ? "border-ember/70 bg-ember/10 shadow-[0_0_0_1px_rgba(255,133,95,0.18)]"
             : "border-white/10 bg-[#141c2f] hover:border-white/20 hover:bg-[#18223a]"
@@ -43,10 +43,10 @@ export function PlayerCard({
           <div className="min-w-0">
             <div className="flex items-start justify-between gap-3 lg:block">
               <div className="min-w-0">
-                <h3 className="truncate font-display text-[1.7rem] uppercase tracking-[0.04em] text-white">
+                <h3 className="truncate font-display text-[1.45rem] uppercase tracking-[0.04em] text-white">
                   {player.name}
                 </h3>
-                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-slate-300">
+                <p className="mt-1.5 text-[0.72rem] uppercase tracking-[0.2em] text-slate-300">
                   {seasonLabel}
                 </p>
               </div>
@@ -56,7 +56,7 @@ export function PlayerCard({
               </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
               <span className={`text-xs uppercase tracking-[0.28em] ${getRoleColor(player.primaryPosition)}`}>
                 {player.eligiblePositions.join(" • ")}
               </span>
@@ -101,7 +101,7 @@ export function PlayerCard({
           <button
             type="button"
             onClick={onAction}
-            className={`mt-4 w-full rounded-xl border px-4 py-3 text-sm uppercase tracking-[0.2em] transition ${
+            className={`mt-3.5 w-full rounded-xl border px-4 py-2.5 text-sm uppercase tracking-[0.2em] transition ${
               selected
                 ? "border-ember/40 bg-ember/20 text-white"
                 : "border-white/10 bg-white/[0.08] text-white hover:bg-ember hover:text-ink"
@@ -116,7 +116,7 @@ export function PlayerCard({
 
   return (
     <article
-      className={`rounded-[1.5rem] border p-4 transition ${
+      className={`rounded-[1.35rem] border p-4 transition ${
         selected
           ? "border-ice bg-ice/10 shadow-[0_0_0_1px_rgba(159,232,255,0.25),0_16px_40px_rgba(0,0,0,0.35)]"
           : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.08]"
@@ -127,7 +127,7 @@ export function PlayerCard({
           <p className={`text-xs uppercase tracking-[0.28em] ${getRoleColor(player.primaryPosition)}`}>
             {player.primaryPosition}
           </p>
-          <h3 className="mt-2 font-display text-2xl uppercase tracking-[0.08em] text-white">
+          <h3 className="mt-1.5 font-display text-xl uppercase tracking-[0.08em] text-white">
             {player.name}
           </h3>
           <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-300">
@@ -140,7 +140,7 @@ export function PlayerCard({
         </div>
       </div>
 
-      <div className="mt-4 inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.22em] text-ember">
+      <div className="mt-3 inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.22em] text-ember">
         {player.roleTag}
       </div>
       {showCapCost ? (
@@ -149,7 +149,7 @@ export function PlayerCard({
         </div>
       ) : null}
 
-      <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-200">
+      <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-200">
         {isGoalie ? (
           <>
             <Stat label="SV%" value={player.stats.savePct ? player.stats.savePct.toFixed(3) : "N/A"} />
@@ -171,7 +171,7 @@ export function PlayerCard({
         <button
           type="button"
           onClick={onAction}
-          className="mt-5 w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-ice hover:text-ink"
+          className="mt-4 w-full rounded-[1rem] border border-white/10 bg-white/10 px-4 py-2.5 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-ice hover:text-ink"
         >
           {actionLabel}
         </button>

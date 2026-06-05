@@ -31,7 +31,7 @@ export function DraftSpinner({
 
     const interval = window.setInterval(() => {
       setSpinFrame((frame) => frame + 1);
-    }, 120);
+    }, 88);
 
     return () => window.clearInterval(interval);
   }, [isSpinning]);
@@ -47,7 +47,7 @@ export function DraftSpinner({
 
   const spinningTeamLabel = fallbackFranchises[spinFrame % fallbackFranchises.length];
   const spinningEraLabel = fallbackEras[(spinFrame * 2) % fallbackEras.length];
-  const revealSettledPrompt = isSpinning && Boolean(pendingPrompt) && spinFrame >= 8;
+  const revealSettledPrompt = isSpinning && Boolean(pendingPrompt) && spinFrame >= 5;
 
   const teamLabel = isSpinning
     ? revealSettledPrompt
@@ -111,14 +111,14 @@ export function DraftSpinner({
             value={teamLabel}
             accent="from-ember/90 to-[#ffb000]"
             active={Boolean(prompt)}
-            spinning={isSpinning}
+            spinning={isSpinning && !revealSettledPrompt}
           />
           <ReelCard
             label="Era"
             value={eraLabel}
             accent="from-[#9547ff] to-[#dd7dff]"
             active={Boolean(prompt)}
-            spinning={isSpinning}
+            spinning={isSpinning && !revealSettledPrompt}
           />
         </div>
 

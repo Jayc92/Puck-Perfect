@@ -634,7 +634,7 @@ function App() {
         onClose={() => setShowPrivacyPolicy(false)}
       />
 
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Header
           seasonGames={seasonGames}
           gameMode={gameMode}
@@ -644,23 +644,24 @@ function App() {
           draftedCount={draftedEntityCount}
         />
 
-        <div className="flex flex-col gap-3 rounded-[1.75rem] border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-[1.55rem] border border-white/10 bg-white/[0.045] p-3.5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-full border border-white/10 bg-white/8 px-4 py-3 text-sm uppercase tracking-[0.2em] text-white">
-              {gameMode === "cap" ? "84-0 $20 cap mode" : "84-0 open mode"}
-            </div>
             {gameMode === "cap" ? (
-              <div className="rounded-full border border-aurora/20 bg-aurora/10 px-4 py-3 text-sm uppercase tracking-[0.2em] text-aurora">
-                ${salarySpent}/${SALARY_CAP} spent
+              <div className="rounded-full border border-aurora/20 bg-aurora/10 px-4 py-2.5 text-xs uppercase tracking-[0.24em] text-aurora">
+                Cap used ${salarySpent}/{SALARY_CAP}
               </div>
-            ) : null}
+            ) : (
+              <div className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2.5 text-xs uppercase tracking-[0.24em] text-slate-300">
+                Eighty-four game chase
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap gap-3">
             {status !== "intro" ? (
               <button
                 type="button"
                 onClick={handleNewDraft}
-                className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-white/20"
+                className="rounded-full border border-white/10 bg-white/10 px-5 py-2.5 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-white/20"
               >
                 {status === "results" ? "New Draft" : "Reset Run"}
               </button>
@@ -668,7 +669,7 @@ function App() {
             <button
               type="button"
               onClick={() => setShowTutorial(true)}
-              className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-white/20"
+              className="rounded-full border border-white/10 bg-white/10 px-5 py-2.5 text-sm uppercase tracking-[0.2em] text-white transition hover:bg-white/20"
             >
               How To Play
             </button>
